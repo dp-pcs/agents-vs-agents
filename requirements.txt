@@ -1,1 +1,5 @@
-# Placeholder for requirements.txt
+crewai
+langchain
+langchain_community
+openai
+python-dotenv

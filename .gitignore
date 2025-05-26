@@ -3,6 +3,9 @@
 venv/
 ENV/
 
+# Environment variables
+.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -78,5 +81,6 @@ coverage.xml
 *.joblib
 
 # Ignore results and cache
-results/
+results/*.tmp
+results/*.log
 .cache/

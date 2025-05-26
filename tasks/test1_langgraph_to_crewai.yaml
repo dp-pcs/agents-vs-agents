@@ -1,1 +1,6 @@
-# Placeholder for test1_langgraph_to_crewai.yaml
+evaluator: LangGraph
+executor: CrewAI
+task: "Summarize the top 3 NBA MVP candidates for 2025."
+status: pending
+output: null
+score: null
