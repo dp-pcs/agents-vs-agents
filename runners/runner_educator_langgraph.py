@@ -16,5 +16,5 @@ duration = end - start
 os.makedirs("results", exist_ok=True)
 with open("results/educator_langgraph.md", "w") as f:
     f.write(result)
-
+    f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
 print(f" Benchmark complete. Output saved to results/educator_langgraph.md\n Duration: {duration:.2f} seconds")

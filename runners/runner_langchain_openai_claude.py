@@ -93,6 +93,7 @@ with open("results/langchain_openai_claude.md", "w") as f:
     f.write("\n\n---\n\n")
     f.write("## Claude Evaluation\n\n")
     f.write(str(getattr(evaluation_md, 'content', evaluation_md)))
+    f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
 
 end = time.time()
 duration = end - start

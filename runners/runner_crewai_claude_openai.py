@@ -41,6 +41,8 @@ evaluation_md = openai_response.choices[0].message.content
 
 # Save result
 os.makedirs("results", exist_ok=True)
+end = time.time()
+duration = end - start
 with open("results/crewai_claude_openai.md", "w") as f:
     f.write("## CrewAI with Claude Output\n\n")
     f.write(str(plan_output))
@@ -48,6 +50,4 @@ with open("results/crewai_claude_openai.md", "w") as f:
     f.write("## OpenAI Evaluation\n\n")
     f.write(str(evaluation_md))
     f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
-end = time.time()
-duration = end - start
 print(f"⏱️ Duration: {duration:.2f} seconds")

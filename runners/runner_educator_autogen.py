@@ -21,5 +21,5 @@ duration = end - start
 os.makedirs("results", exist_ok=True)
 with open("results/educator_autogen.md", "w") as f:
     f.write(result)
-
+    f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
 print(f"\u2705 Benchmark complete. Output saved to results/educator_autogen.md\n⏱️ Duration: {duration:.2f} seconds")
