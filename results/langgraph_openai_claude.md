@@ -1,29 +1,29 @@
 ## LangGraph with OpenAI Output
 
-| Week | Topics | Resources | Project (if applicable) |
-|------|--------|-----------|-------------------------|
-| 1 | Introduction to Machine Learning | [Machine Learning by Stanford University - Coursera](https://www.coursera.org/learn/machine-learning) (Week 1) | - |
-| 2 | Linear Regression | Machine Learning by Stanford University - Coursera (Week 2) | - |
-| 3 | Logistic Regression | Machine Learning by Stanford University - Coursera (Week 3) | - |
-| 4 | Neural Networks: Basics | Machine Learning by Stanford University - Coursera (Week 4) | Project 1: Predicting House Prices using Linear Regression |
-| 5 | Neural Networks: Deep Learning | Machine Learning by Stanford University - Coursera (Week 5) | - |
-| 6 | Advice for Applying Machine Learning | Machine Learning by Stanford University - Coursera (Week 6) | - |
-| 7 | Support Vector Machines | Machine Learning by Stanford University - Coursera (Week 7) | Project 2: Handwritten Digit Recognition using Neural Networks |
-| 8 | Unsupervised Learning | Machine Learning by Stanford University - Coursera (Week 8) | - |
-| 9 | Anomaly Detection and Recommender Systems | Machine Learning by Stanford University - Coursera (Week 9) | - |
-| 10 | Introduction to Natural Language Processing | [Natural Language Processing by National Research University - Coursera](https://www.coursera.org/learn/language-processing) (Week 1-2) | Project 3: Building a Movie Recommender System |
-| 11 | Advanced Natural Language Processing | Natural Language Processing by National Research University - Coursera (Week 3-4) | - |
-| 12 | Understanding Large Language Models | [Illustrated Transformer by Jay Alammar](http://jalammar.github.io/illustrated-transformer/) | Project 4: Text Classification using NLP |
+| Week | Topics | Resources | Project |
+|---|---|---|---|
+| 1 | Introduction to Machine Learning | [Coursera: Machine Learning by Andrew Ng](https://www.coursera.org/learn/machine-learning) (Week 1) | - |
+| 2 | Linear Regression with One Variable | Coursera: Machine Learning by Andrew Ng (Week 2) | - |
+| 3 | Linear Algebra Review | Coursera: Machine Learning by Andrew Ng (Week 2) | - |
+| 4 | Linear Regression with Multiple Variables | Coursera: Machine Learning by Andrew Ng (Week 3) | Project 1: Predicting House Prices using Linear Regression |
+| 5 | Logistic Regression | Coursera: Machine Learning by Andrew Ng (Week 4) | - |
+| 6 | Regularization | Coursera: Machine Learning by Andrew Ng (Week 5) | - |
+| 7 | Neural Networks: Representation | Coursera: Machine Learning by Andrew Ng (Week 6) | Project 2: Digit Recognition using Logistic Regression |
+| 8 | Neural Networks: Learning | Coursera: Machine Learning by Andrew Ng (Week 7) | - |
+| 9 | Advice for Applying Machine Learning | Coursera: Machine Learning by Andrew Ng (Week 8) | - |
+| 10 | Machine Learning System Design | Coursera: Machine Learning by Andrew Ng (Week 9) | Project 3: Email Spam Filter using Neural Networks |
+| 11 | Introduction to Large Language Models | [OpenAI: GPT-3 Explained](https://openai.com/research/gpt-3/) | - |
+| 12 | Building a Project with GPT-3 | [OpenAI: GPT-3 Playground](https://beta.openai.com/playground/) | Project 4: Text Generation using GPT-3 |
 
-**Summary**
+**Summary:**
 
-This curriculum starts with the basics of machine learning, gradually introducing more complex concepts and techniques. The first seven weeks are dedicated to understanding the core foundations of machine learning, including linear and logistic regression, neural networks, and support vector machines. The eighth and ninth weeks delve into unsupervised learning and specific applications of machine learning, such as anomaly detection and recommender systems.
+This learning plan is designed to gradually introduce the user to the core concepts of machine learning, starting with simpler models like linear and logistic regression, and then moving on to more complex models like neural networks. The first 10 weeks are dedicated to understanding the theory behind these models, with hands-on projects every 3-4 weeks to apply the concepts learned.
 
-The last three weeks are dedicated to natural language processing and understanding large language models. This progression makes sense because it starts with the basics and gradually introduces more complex topics, building on the knowledge gained in previous weeks.
+The last two weeks are dedicated to understanding and working with large language models like GPT-3. This is a significant jump in complexity from the previous topics, but by this point, the user should have a solid understanding of the basics of machine learning, which will help them understand these more advanced models.
 
-The curriculum balances theory and practice by including a hands-on project every three to four weeks. These projects allow the user to apply the concepts they have learned in a practical setting, reinforcing their understanding and giving them experience with real-world data.
+The projects are designed to give the user practical experience with the concepts learned. They involve real-world datasets and tasks, which will help the user understand how these models can be applied in practice.
 
-By the end of this curriculum, the user should have a solid understanding of the core foundations of machine learning, be familiar with a variety of machine learning techniques and their applications, and have a basic understanding of natural language processing and large language models. They will also have experience applying these concepts to real-world data through the hands-on projects.
+By the end of this learning plan, the user should have a solid understanding of the core concepts of machine learning, and should be able to build their own models for a variety of tasks. They should also have a basic understanding of how large language models work, and should be able to use models like GPT-3 to build their own projects.
 
 ---
 
@@ -31,12 +31,13 @@ By the end of this curriculum, the user should have a solid understanding of the
 
 Here is the evaluation of the AI-generated 12-week AI/ML learning plan:
 
-| Category | Score | Explanation |
-|----------|-------|-------------|
-| Task Execution | 4 | The learning plan effectively covers key AI/ML topics in a logical progression, with a good balance of theory and practical projects. |
-| Output Clarity | 5 | The output is well-structured, easy to understand, and provides clear guidance on topics, resources, and projects for each week. |
-| Error Recovery | 3 | While the plan is generally sound, it doesn't provide guidance on how to handle potential challenges or errors that may arise during the learning process. |
-| Autonomy & Initiative | 3 | The plan follows a predefined structure (an existing online course) and doesn't demonstrate much originality or initiative in its design. |
+| Category | Score |
+|----------|-------|
+| Task Execution | 4 |
+| Output Clarity | 5 |
+| Error Recovery | N/A |
+| Autonomy & Initiative | 3 |
 
-Summary:
-The AI-generated 12-week AI/ML learning plan provides a solid foundation for learning key concepts and techniques in machine learning and natural language processing. The plan is well-structured, covering topics in a logical progression and incorporating practical projects to reinforce learning. However, it could be improved by offering guidance on error recovery and demonstrating more originality in its design. Overall, it serves as a good starting point for those interested in learning AI/ML, but may require some customization to fit individual learning needs and goals.
+The provided learning plan effectively covers the fundamental concepts of machine learning, starting with basic models like linear and logistic regression and progressing to more advanced topics such as neural networks and large language models like GPT-3. The plan is well-structured, with hands-on projects every 3-4 weeks to reinforce the learned concepts using real-world datasets and tasks.
+
+The output is clear and easy to understand, with a logical progression of topics and resources. However, the plan does not address potential errors or challenges that learners might face during their learning journey. Additionally, while the plan provides a solid foundation, it could benefit from suggesting additional resources or encouraging learners to explore further based on their interests to foster more autonomy and initiative.
