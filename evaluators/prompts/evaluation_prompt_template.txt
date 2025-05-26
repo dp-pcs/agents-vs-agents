@@ -1,1 +1,31 @@
 # Placeholder for evaluation_prompt_template.txt
+You are an AI educational coach. A user has asked for help designing a personalized learning plan to become proficient in AI and machine learning.
+
+They already know:
+- Python programming
+- Basic statistics
+
+They want to:
+- Learn the core foundations of machine learning
+- Understand how large language models work
+- Build hands-on projects using real datasets
+
+Constraints:
+- The user has ~10 hours per week to learn
+- The total plan should last 12 weeks
+
+Your task:
+
+1. Design a 12-week curriculum that builds progressively each week  
+2. Include at least one hands-on project every 3–4 weeks  
+3. Recommend specific courses, tutorials, or reading (include links if possible)  
+4. Make sure the difficulty increases over time — don’t start with transformers  
+5. Output the plan in a clear markdown table:
+   - Week
+   - Topics
+   - Resources
+   - Project (if applicable)
+6. At the end, write a summary explaining:
+   - Why this order makes sense
+   - How it balances theory + practice
+   - What the user should know by the end

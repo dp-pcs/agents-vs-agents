@@ -1,7 +1,7 @@
 # runner.py
 
 from frameworks.crewai_runner import run_crewai_task
-from evaluators.langgraph_evaluator import evaluate_output
+from frameworks.langgraph_runner import evaluate_output
 import os
 
 # Define the task LangGraph wants CrewAI to do
