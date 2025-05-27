@@ -40,9 +40,12 @@ for filename in sorted(os.listdir(RESULTS_DIR)):
     if match:
         scores["Autonomy"] = match[0]
 
-    match = re.findall(r"\*\*Total Score\*\*\s*\|\s*(\d+)", content)
-    if match:
-        scores["Total"] = match[0]
+    # Updated total score calculation per user request
+    total = 0
+    for k in ["Task", "Clarity", "Recovery", "Autonomy"]:
+        if scores[k] != "—":
+            total += int(scores[k])
+    scores["Total"] = str(total)
 
     match = re.findall(r"\*\*Time to complete:\*\*\s*([\d.]+)", content)
     if match:

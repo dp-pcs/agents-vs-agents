@@ -16,15 +16,9 @@ plan_output = run_langgraph_educator_task(model="gpt-4")
 
 # Step 2: Claude evaluates
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-claude_prompt = f"""
-Evaluate the following AI-generated output for a 12-week AI/ML learning plan. Score it 1–5 in each category:\n\n
-1. Task Execution
-2. Output Clarity
-3. Error Recovery
-4. Autonomy & Initiative
+from runners.prompt_utils import load_prompt
 
-Return a markdown table with the scores and a brief summary paragraph.\n\n---\n\nOUTPUT TO EVALUATE:\n{plan_output}
-"""
+claude_prompt = load_prompt() + f"\n\n---\n\nOUTPUT TO EVALUATE:\n{plan_output}"
 
 print("\U0001F9E0 Claude evaluating...")
 claude_response = anthropic_client.messages.create(
@@ -43,7 +37,8 @@ with open("results/langgraph_openai_claude.md", "w") as f:
     f.write("\n\n---\n\n")
     f.write("## Claude Evaluation\n\n")
     f.write(str(evaluation_md))
-    f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
 end = time.time()
 duration = end - start
+with open("results/langgraph_openai_claude.md", "a") as f:
+    f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
 print(f"\u2705 Saved to results/langgraph_openai_claude.md\n\u2705 Duration: {duration:.2f} seconds")

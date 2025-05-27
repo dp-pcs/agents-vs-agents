@@ -20,15 +20,9 @@ plan_output = run_crewai_educator_task(llm_model="claude-3-opus-20240229")
 
 # Step 2: OpenAI evaluates
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-evaluation_prompt = f"""
-Evaluate the following AI-generated output for a 12-week AI/ML learning plan. Score it 1–5 in each category:\n\n
-1. Task Execution
-2. Output Clarity
-3. Error Recovery
-4. Autonomy & Initiative
+from runners.prompt_utils import load_prompt
 
-Return a markdown table with the scores and a brief summary paragraph.\n\n---\n\nOUTPUT TO EVALUATE:\n{plan_output}
-"""
+evaluation_prompt = load_prompt() + f"\n\n---\n\nOUTPUT TO EVALUATE:\n{plan_output}"
 
 print("\U0001F9E0 OpenAI evaluating...")
 openai_response = openai_client.chat.completions.create(

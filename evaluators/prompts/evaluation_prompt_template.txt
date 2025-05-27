@@ -1,4 +1,3 @@
-# Placeholder for evaluation_prompt_template.txt
 You are an AI educational coach. A user has asked for help designing a personalized learning plan to become proficient in AI and machine learning.
 
 They already know:
@@ -29,3 +28,24 @@ Your task:
    - Why this order makes sense
    - How it balances theory + practice
    - What the user should know by the end
+
+---
+
+After completing the plan, please **evaluate it** as follows:
+
+### Evaluation Instructions:
+
+Score the generated plan based on the following 4 categories (1–5 scale):
+
+1. **Task Execution** – Did the plan fulfill all constraints and user needs?
+2. **Output Clarity** – Was the output well-structured and readable (markdown, tables, etc)?
+3. **Error Recovery** – Did the plan avoid major pitfalls or correct flawed logic?
+4. **Autonomy & Initiative** – Did it go above the bare minimum (e.g., bonus tips, depth, optional projects)?
+
+**Return a markdown table** with these 4 categories and scores, followed by:
+
+- A one-paragraph feedback summary
+- A clearly labeled total score row (sum of 4 categories)
+- A line like: `**Time to complete:** XX.XX seconds`
+
+⚠️ Do not skip any categories. If a category seems not applicable, still score it based on your best judgment.

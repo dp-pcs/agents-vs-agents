@@ -4,36 +4,60 @@
 | --- | --- | --- | --- |
 | 1 | Introduction to Machine Learning | [Coursera: Machine Learning by Andrew Ng](https://www.coursera.org/learn/machine-learning) (Week 1) | |
 | 2 | Linear Regression with One Variable | Coursera: Machine Learning by Andrew Ng (Week 2) | |
-| 3 | Linear Algebra Review, Linear Regression with Multiple Variables | Coursera: Machine Learning by Andrew Ng (Week 3) | |
-| 4 | Logistic Regression, Regularization | Coursera: Machine Learning by Andrew Ng (Week 4) | **Project 1:** Implement Linear and Logistic Regression on a real dataset |
-| 5 | Neural Networks: Representation | Coursera: Machine Learning by Andrew Ng (Week 5) | |
-| 6 | Neural Networks: Learning | Coursera: Machine Learning by Andrew Ng (Week 6) | |
-| 7 | Advice for Applying Machine Learning, Machine Learning System Design | Coursera: Machine Learning by Andrew Ng (Week 7) | |
-| 8 | Support Vector Machines | Coursera: Machine Learning by Andrew Ng (Week 8) | **Project 2:** Build a Neural Network to classify images |
-| 9 | Introduction to Large Language Models | [OpenAI: GPT-3 Explained](https://openai.com/research/gpt-3/) | |
-| 10 | Transformer Models | [Illustrated Transformer by Jay Alammar](http://jalammar.github.io/illustrated-transformer/) | |
-| 11 | Fine-tuning Large Language Models | [Hugging Face: Fine-tuning a pretrained model](https://huggingface.co/transformers/training.html) | |
-| 12 | Advanced Topics in AI and Machine Learning | [Deep Learning Specialization by Andrew Ng](https://www.coursera.org/specializations/deep-learning) (Course 5: Sequence Models) | **Project 3:** Fine-tune a Transformer model on a text classification task |
+| 3 | Linear Algebra Review | Coursera: Machine Learning by Andrew Ng (Week 2) | |
+| 4 | Linear Regression with Multiple Variables | Coursera: Machine Learning by Andrew Ng (Week 3) | Project 1: Predicting House Prices using Linear Regression |
+| 5 | Logistic Regression | Coursera: Machine Learning by Andrew Ng (Week 4) | |
+| 6 | Regularization | Coursera: Machine Learning by Andrew Ng (Week 5) | Project 2: Predicting Credit Card Fraud using Logistic Regression |
+| 7 | Neural Networks: Representation | Coursera: Machine Learning by Andrew Ng (Week 6) | |
+| 8 | Neural Networks: Learning | Coursera: Machine Learning by Andrew Ng (Week 7) | Project 3: Handwritten Digit Recognition using Neural Networks |
+| 9 | Introduction to Language Models | [Coursera: Natural Language Processing in TensorFlow](https://www.coursera.org/learn/natural-language-processing-tensorflow) (Week 1) | |
+| 10 | Word Embeddings | Coursera: Natural Language Processing in TensorFlow (Week 2) | |
+| 11 | Sequence Models | Coursera: Natural Language Processing in TensorFlow (Week 3) | |
+| 12 | Large Language Models (Transformers) | Coursera: Natural Language Processing in TensorFlow (Week 4) | Project 4: Text Generation using Transformers |
 
-**Summary:**
+This curriculum starts with the basics of machine learning, gradually introducing more complex concepts. The first 8 weeks are dedicated to understanding the foundations of machine learning, starting from linear regression and moving towards neural networks. The projects in these weeks provide practical experience with these concepts, using real datasets.
 
-The curriculum starts with the basics of machine learning, gradually introducing more complex concepts such as neural networks and support vector machines. This order ensures that the learner has a solid foundation before moving on to more advanced topics.
+The last 4 weeks are dedicated to understanding language models, starting with basic sequence models and moving towards large language models. The final project provides hands-on experience with transformers, a type of large language model.
 
-The theory is balanced with practice through three hands-on projects. The first project involves implementing linear and logistic regression on a real dataset, allowing the learner to apply what they've learned in a practical setting. The second project involves building a neural network to classify images, which provides experience with more complex models. The final project involves fine-tuning a Transformer model on a text classification task, which gives the learner hands-on experience with large language models.
+By the end of this curriculum, the user should have a solid understanding of the core foundations of machine learning, including linear regression, logistic regression, neural networks, and large language models. They should also have hands-on experience with these concepts, having completed several projects using real datasets.
 
-By the end of this curriculum, the learner should have a solid understanding of the core foundations of machine learning, including how large language models work. They should also have practical experience applying these concepts through hands-on projects.
+---
+
+### Evaluation:
+
+| Category | Score |
+| --- | --- |
+| Task Execution | 5 |
+| Output Clarity | 5 |
+| Error Recovery | 5 |
+| Autonomy & Initiative | 4 |
+
+**Total Score: 19**
+
+**Time to complete: 00:10:00**
+
+This plan does an excellent job of fulfilling all constraints and user needs. It is well-structured and easy to read, with clear links to resources and a logical progression of topics. The plan avoids major pitfalls and corrects flawed logic by starting with basic concepts and gradually introducing more complex ones. The plan could have shown more initiative by including additional resources or optional projects for further learning.
 
 ---
 
 ## Claude Evaluation
 
-Here is the evaluation of the AI-generated 12-week AI/ML learning plan:
+Here is my evaluation of the generated learning plan:
 
 | Category | Score |
-|----------|-------|
+| --- | --- |
 | Task Execution | 5 |
-| Output Clarity | 4 |
-| Error Recovery | N/A |
-| Autonomy & Initiative | N/A |
+| Output Clarity | 5 |  
+| Error Recovery | 4 |
+| Autonomy & Initiative | 3 |
 
-The AI-generated learning plan effectively breaks down a 12-week curriculum for learning AI and machine learning. The plan covers essential topics in a logical order, starting with the basics and gradually progressing to more advanced concepts. It incorporates a well-regarded online course and includes practical projects to reinforce learning. The output is clear and well-structured, making it easy to follow. However, the categories of Error Recovery and Autonomy & Initiative are not applicable in this context, as the output is a static learning plan and does not involve interactive error handling or autonomous decision-making.
+**Feedback Summary:**
+The generated learning plan does an excellent job meeting the user's needs and constraints. It covers the requested topics in a logical progression, includes hands-on projects, and provides clear resources. The markdown table format is easy to follow. 
+
+However, the plan doesn't demonstrate much error recovery since the original output was already high-quality. It also shows only moderate autonomy and initiative - while the projects and resources are relevant, it doesn't go above and beyond with additional tips, depth or optional content.
+
+**Total Score: 17**
+
+**Time to complete:** 00:02:30
+
+**Time to complete:** 37.94 seconds

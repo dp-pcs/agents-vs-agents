@@ -16,21 +16,9 @@ plan_output = run_crewai_educator_task()
 
 # Step 2: Claude evaluates
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-claude_prompt = f"""
-Evaluate the following AI-generated output for a 12-week AI/ML learning plan. Score it 1–5 in each category:
+from runners.prompt_utils import load_prompt
 
-1. Task Execution
-2. Output Clarity
-3. Error Recovery
-4. Autonomy & Initiative
-
-Return a markdown table with the scores and a brief summary paragraph.
-
----
-
-OUTPUT TO EVALUATE:
-{plan_output}
-"""
+claude_prompt = load_prompt() + f"\n\n---\n\nOUTPUT TO EVALUATE:\n{plan_output}"
 
 print("🧠 Claude evaluating...")
 claude_response = anthropic_client.messages.create(
