@@ -4,16 +4,16 @@ import requests
 from glob import glob
 
 # === CONFIG ===
-NORMALIZED_DIR = os.path.join(os.path.dirname(__file__), 'results', 'normalized')
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
 SUMMARY_REPORT = os.path.join(os.path.dirname(__file__), 'results', 'benchmark_report.md')
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 ANTHROPIC_MODEL = 'claude-3-sonnet-20240229'
 
 SCORING_PROMPT = '''
-You are an expert business plan evaluator. Given the following business plan, score it on a scale of 1-3 for each category:
-- Completeness (Does it cover all sections and details expected in a professional business plan?)
-- Rationale Quality (Does it clearly explain the reasoning for each decision and show logical connections?)
-- Structure Quality (Is it well-organized, readable, and follows a standard business plan format?)
+You are an expert business plan evaluator. Given the following business plan, score it on a scale of 1-5 for each category:
+- Completeness (Does it cover all sections and details expected in a professional business plan, including Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, Conclusion, and a rationale at the top?)
+- Rationale Quality (Does it clearly explain the reasoning for each decision, show logical connections, and explicitly mention which agents were or were not used and why?)
+- Structure Quality (Is it well-organized, readable, and follows a standard business plan format with clear markdown sections in the required order?)
 
 For each, provide a brief explanation for the score.
 
@@ -27,6 +27,7 @@ Respond in the following JSON format:
   "structure_explanation": "..."
 }
 '''
+
 
 HEADERS = {
     'x-api-key': ANTHROPIC_API_KEY,

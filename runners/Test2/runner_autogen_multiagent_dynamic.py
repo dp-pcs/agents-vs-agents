@@ -20,17 +20,7 @@ class WindowedAssistantAgent(AssistantAgent):
 # System prompt for the orchestrator agent
 orchestrator_system_message = """
 You are an autonomous AI Chief Operations Officer.
-You will receive a business objective from a user, and you must create a strategic operational plan by dynamically engaging other agents (experts).
-You may decide:
-- Which agents to involve (if any)
-- What subtasks to assign
-- Whether to ask follow-ups or iterate
-
-Your goal is to return a 1-page markdown-formatted strategic plan for the business scenario.
-You must decide the sequence, collaboration, and scope of work needed to produce the best outcome.
-
-Once you have received input from any necessary agents, synthesize the final plan and include a rationale. Then stop the conversation by saying:
-**"Here is the final operational plan and rationale."**
+You will receive a business objective from a user, and you must create a comprehensive, sectioned business plan by dynamically engaging other agents (experts). For each agent, instruct them to generate a full markdown section for their assigned business plan component (Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, Conclusion). Once you have received input from all necessary agents, synthesize the final plan and include a rationale at the top. At the top, note any agent not used (e.g., BaseballCoachAgent). Output a single markdown file with all sections in order. Then stop the conversation by saying: **"Here is the final business plan and rationale."**
 """
 
 # Config for OpenAI (gpt-4)
@@ -186,17 +176,22 @@ def has_final_plan_with_rationale(messages):
 
 start = time.time()
 initial_message = {"content": user_goal, "role": "user", "name": user_proxy.name}
-manager.run_chat(messages=[initial_message], sender=user_proxy, config=groupchat)
+messages = [initial_message]
+final_plan = ""
+
+# Step-by-step chat: break when COOAgent outputs the final plan
+for i in range(groupchat.max_round):
+    manager.run_chat(messages=messages, sender=user_proxy, config=groupchat)
+    # Check for final COOAgent message
+    for m in reversed(groupchat.messages):
+        content_lower = m["content"].lower()
+        if m["name"] == "COOAgent" and "rationale" in content_lower and ("operational plan" in content_lower or "business plan" in content_lower) and "here is the final business plan and rationale." in content_lower:
+            final_plan = m["content"]
+            break
+    if final_plan:
+        break
 end = time.time()
 duration = round(end - start, 2)
-
- # Extract final message from COOAgent with rationale or fallback to last COOAgent message
-final_plan = ""
-for m in reversed(groupchat.messages):
-    content_lower = m["content"].lower()
-    if m["name"] == "COOAgent" and "rationale" in content_lower and ("operational plan" in content_lower or "business plan" in content_lower):
-        final_plan = m["content"]
-        break
 
 # Fallback if no rationale-containing message is found
 if not final_plan:
@@ -205,43 +200,20 @@ if not final_plan:
             final_plan = m["content"]
             break
 
-# Count assistant agent messages as a proxy for agent turns
-agent_turns = sum(1 for m in groupchat.messages if m["name"] != "UserProxy" and m["name"] != "COOAgent")
-
-# Manual scoring
-plan_completeness = 2  # 0 = partial, 1 = missing agents, 2 = complete
-rationale_quality = 3  # 0–3 scale
-structure_quality = 3  # 0–3 scale
-
-# Perplexity scoring
-perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
-def perplexity_score(plan):
-    if not perplexity_api_key:
-        return "No API key provided."
-    url = "https://api.perplexity.ai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {perplexity_api_key}",
-        "Content-Type": "application/json"
-    }
-    prompt = (
-        "Score the following business plan for completeness, rationale quality, and structure quality on a scale of 0–3. "
-        "Return a JSON object with the scores and a brief explanation.\n\nBusiness Plan:\n" + plan
-    )
-    data = {
-        "model": "pplx-70b-online",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2
-    }
-    try:
-        resp = requests.post(url, headers=headers, json=data, timeout=60)
-        if resp.ok:
-            return resp.json()["choices"][0]["message"]["content"]
-        else:
-            return f"Perplexity API error: {resp.status_code} {resp.text}"
-    except Exception as e:
-        return f"Perplexity API call failed: {str(e)}"
-
-llm_score = perplexity_score(final_plan)
+# Count messages from section agents as agent turns
+section_agent_names = [
+    "ExecutiveSummaryAgent",
+    "MarketAnalysisAgent",
+    "ProductStrategyAgent",
+    "GoToMarketAgent",
+    "FinancialAgent",
+    "TeamAgent",
+    "RisksAgent",
+    "TimelineAgent",
+    "ConclusionAgent",
+    "BaseballCoachAgent"
+]
+agent_turns = sum(1 for m in groupchat.messages if m["name"] in section_agent_names)
 
 # Multi-model Bedrock scoring
 import boto3
@@ -254,11 +226,6 @@ def get_bedrock_body(model_id, prompt, max_tokens=512):
             "max_tokens": max_tokens,
             "temperature": 0.2,
             "anthropic_version": "bedrock-2023-05-31"
-        }
-    elif "deepseek" in model_id:
-        return {
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": max_tokens
         }
     else:
         return {
@@ -354,10 +321,14 @@ for model_id, label in bedrock_models:
 
 # Save final result
 os.makedirs("results", exist_ok=True)
-with open("results/autogen_dynamic_orchestration.md", "w") as f:
+print(f"[DEBUG] final_plan content before writing to file:\n{final_plan}\n---END---")
+with open("results/b2_autogen_dynamic_orchestration.md", "w") as f:
     output_md = f"Generated: 2025-05-28T13:04:52-06:00\n# AutoGen Dynamic Orchestration Output\n\n"
     f.write(output_md)
-    f.write(final_plan)
+    if final_plan.strip():
+        f.write(final_plan)
+    else:
+        f.write("[WARNING] No business plan content was extracted. Please check the agent conversation or extraction logic.\n")
     f.write(f"\n\n**Time to complete:** {duration} seconds\n")
     f.write(f"\n**Agent turns:** {agent_turns}\n")
     f.write("\n**Bedrock LLM Scores:**\n")
@@ -366,4 +337,4 @@ with open("results/autogen_dynamic_orchestration.md", "w") as f:
     for score in bedrock_scores:
         f.write(f"| {score[0]} | {score[1]} |\n")
 
-print("✅ Output saved to results/autogen_dynamic_orchestration.md")
+print("✅ Output saved to results/b2_autogen_dynamic_orchestration.md")

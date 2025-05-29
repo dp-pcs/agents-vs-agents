@@ -98,7 +98,7 @@ baseball_coach_agent = Agent(
 # Orchestrator agent
 orchestrator = Agent(
     role="Orchestrator Agent",
-    goal="Assemble a comprehensive business plan for an AI productivity app by collecting and combining the markdown sections from all expert agents. At the top, include a rationale for agent selection and a note explaining any agent not used (e.g., BaseballCoachAgent). Output a single markdown file with all sections in order.",
+    goal="Assemble a comprehensive, sectioned business plan for an AI productivity app by dynamically engaging other agents (experts). For each agent, instruct them to generate a full markdown section for their assigned business plan component (Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, Conclusion). Once you have received input from all necessary agents, synthesize the final plan and include a rationale at the top. At the top, note any agent not used (e.g., BaseballCoachAgent). Output a single markdown file with all sections in order.",
     backstory="You coordinate expert agents to create a professional business plan. The BaseballCoachAgent is not relevant to the business task.",
     llm=llm,
     verbose=True
@@ -185,9 +185,43 @@ end = time.time()
 duration = round(end - start, 2)
 
 # Count agent turns (excluding orchestrator)
-def count_agent_turns(output):
-    # Simple heuristic: count agent role mentions in the result
-    return sum(output.count(agent.role) for agent in [
+def count_agent_turns_from_tasks(task_results):
+    # Count the number of completed section tasks (one per agent section)
+    return sum(1 for t in task_results if t.get('status') == 'completed' and t.get('agent') in [
+        'Executive Summary Agent',
+        'Market Analysis Agent',
+        'Product Strategy Agent',
+        'Go-to-Market Agent',
+        'Financial Agent',
+        'Team Agent',
+        'Risks Agent',
+        'Timeline Agent',
+        'Conclusion Agent',
+        'Baseball Coach Agent'
+    ])
+
+# Run the orchestrated crew
+crew = Crew(
+    agents=[research_agent, market_analysis_agent, product_agent, go_to_market_agent, financial_agent, team_agent, risks_agent, pm_agent, conclusion_agent, baseball_coach_agent, orchestrator],
+    tasks=[task_executive, task_market, task_product, task_goto, task_financial, task_team, task_risks, task_timeline, task_conclusion, task_baseball, task_orchestrator],
+    verbose=True
+)
+
+print("🚀 Running multi-agent orchestrator benchmark...\n")
+
+start = time.time()
+result = crew.kickoff()
+end = time.time()
+duration = round(end - start, 2)
+
+# Count agent turns by task execution if possible
+agent_turns = None
+if hasattr(result, 'tasks') and isinstance(result.tasks, list):
+    agent_turns = count_agent_turns_from_tasks(result.tasks)
+    print(f"[INFO] CrewAI agent turns (completed section tasks): {agent_turns}")
+else:
+    # Fallback: count role mentions in output
+    agent_turns = sum(str(result).count(agent.role) for agent in [
         research_agent,
         market_analysis_agent,
         product_agent,
@@ -198,42 +232,9 @@ def count_agent_turns(output):
         pm_agent,
         conclusion_agent
     ])
+    print(f"[INFO] CrewAI agent turns (fallback, output role mentions): {agent_turns}")
 agent_turns = count_agent_turns(str(result))
 
-# Manual scores (placeholders)
-completeness_score = 2  # 0=partial, 1=missing agents, 2=complete
-rationale_quality = 3   # 0–3 scale
-structure_quality = 3   # 0–3 scale
-
-# Perplexity scoring
-perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
-def perplexity_score(plan):
-    if not perplexity_api_key:
-        return "No API key provided."
-    url = "https://api.perplexity.ai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {perplexity_api_key}",
-        "Content-Type": "application/json"
-    }
-    prompt = (
-        "Score the following business plan for completeness, rationale quality, and structure quality on a scale of 0–3. "
-        "Return a JSON object with the scores and a brief explanation.\n\nBusiness Plan:\n" + str(result)
-    )
-    data = {
-        "model": "pplx-70b-online",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2
-    }
-    try:
-        resp = requests.post(url, headers=headers, json=data, timeout=60)
-        if resp.ok:
-            return resp.json()["choices"][0]["message"]["content"]
-        else:
-            return f"Perplexity API error: {resp.status_code} {resp.text}"
-    except Exception as e:
-        return f"Perplexity API call failed: {str(e)}"
-
-llm_score = perplexity_score(str(result))
 
 # Multi-model Bedrock scoring
 import boto3
@@ -247,11 +248,6 @@ def get_bedrock_body(model_id, prompt, max_tokens=512):
             "max_tokens": max_tokens,
             "temperature": 0.2,
             "anthropic_version": "bedrock-2023-05-31"
-        }
-    elif "deepseek" in model_id:
-        return {
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": max_tokens
         }
     else:
         return {
@@ -341,7 +337,7 @@ for model_id, label in bedrock_models:
 
 # Save the final orchestrated output
 os.makedirs("results", exist_ok=True)
-with open("results/crewai_dynamic_orchestration.md", "w") as f:
+with open("results/b2_crewai_dynamic_orchestration.md", "w") as f:
     output_md = f"Generated: 2025-05-28T13:04:52-06:00\n# CrewAI Dynamic Orchestration Output\n\n"
     f.write(output_md)
     f.write(str(result))
@@ -362,4 +358,4 @@ with open("results/crewai_dynamic_orchestration.md", "w") as f:
         else:
             f.write(f"| {label} | {scores} | {scores} | {scores} |\n")
 
-print("✅ Output saved to results/crewai_dynamic_orchestration.md")
+print("✅ Output saved to results/b2_crewai_dynamic_orchestration.md")
