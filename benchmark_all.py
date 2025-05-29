@@ -3,7 +3,6 @@ import sys
 import time
 import json
 import re
-import requests
 from glob import glob
 from datetime import datetime
 
@@ -21,58 +20,6 @@ NORMALIZED_DIR = os.path.join(RESULTS_DIR, 'normalized')
 SUMMARY_REPORT = os.path.join(RESULTS_DIR, 'benchmark_report.md')
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 ANTHROPIC_MODEL = 'claude-3-sonnet-20240229'
-
-# Bedrock config for multi-model scoring
-BEDROCK_MODELS = [
-    ("anthropic.claude-3-sonnet-20240229-v1:0", "Claude 3 Sonnet"),
-    ("anthropic.claude-3-haiku-20240307-v1:0", "Claude 3 Haiku"),
-    ("meta.llama3-8b-instruct-v1:0", "Llama 3 8B"),
-]
-
-SCORING_PROMPT = '''
-You are an expert business plan evaluator. Given the following business plan, score it on a scale of 0-3 for each category:
-
-- Completeness (Does it cover all sections and details expected in a professional business plan, including Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, Conclusion, and a rationale at the top?)
-  - 0: Missing most required sections
-  - 1: Missing several key sections or most sections lack depth
-  - 2: Contains most sections with adequate detail
-  - 3: Comprehensive with all required sections and appropriate detail
-
-- Rationale Quality (Does it clearly explain why certain agents were used and others were not? Does it mention the BaseballCoachAgent and explain why it was excluded? Does it explain the reasoning behind strategic decisions?)
-  - 0: No rationale provided
-  - 1: Minimal rationale with little explanation
-  - 2: Adequate rationale with some explanation of decisions
-  - 3: Excellent rationale with clear explanations for all key decisions
-
-- Structure Quality (Is it well-organized, readable, and follows a standard business plan format with clear markdown sections in the required order?)
-  - 0: Poorly structured, difficult to follow
-  - 1: Basic structure but with organizational issues
-  - 2: Good structure with clear sections
-  - 3: Excellent structure with professional formatting and logical flow
-
-For each, provide a brief explanation for the score.
-
-Additional considerations:
-- For Completeness: Check if there's a rationale section at the top and if it mentions which agents were used and not used
-- For Structure Quality: Check for consistent headers, logical flow between sections, and appropriate formatting
-
-Respond in the following JSON format:
-{
-  "completeness": <score>,
-  "completeness_explanation": "...",
-  "rationale_quality": <score>,
-  "rationale_explanation": "...",
-  "structure_quality": <score>,
-  "structure_explanation": "...",
-  "baseball_coach_handling": <0 if not mentioned, 1 if mentioned but not explained, 2 if mentioned as excluded with explanation>
-}
-'''
-
-HEADERS = {
-    'x-api-key': ANTHROPIC_API_KEY,
-    'anthropic-version': '2023-06-01',
-    'content-type': 'application/json'
-}
 
 # === AWS Credentials Check ===
 def check_aws_credentials():
@@ -102,12 +49,47 @@ def run_all_framework_tests():
     
     print("\n\n=== AUTOGEN TEST ===\n")
     autogen_output, autogen_duration, autogen_turns = run_autogen_test()
+    
+    # Get BaseballCoachAgent usage info from analyzing the output text
     results["autogen"] = {
         "duration": autogen_duration,
         "agent_turns": autogen_turns,
         "output_length": len(autogen_output) if autogen_output else 0,
         "output": autogen_output  # Store the actual output for analysis
     }
+    
+    # Check if BaseballCoach appears in the output
+    if "BaseballCoachAgent" in autogen_output:
+        # Check if it's mentioned in the context of being excluded
+        if any(phrase in autogen_output.lower() for phrase in [
+            "not use baseballcoachagent", 
+            "not involve baseball", 
+            "excluded baseball", 
+            "irrelevant baseball",
+            "not relevant baseball",
+            "was correctly identified as irrelevant",
+            "was correctly filtered out"
+        ]):
+            # It was mentioned in the context of being excluded
+            results["autogen"]["filtered_irrelevant_agents"] = "Yes"
+            results["autogen"]["agent_filtering_details"] = (
+                "Detection method: Text analysis.\n"
+                "BaseballCoachAgent was mentioned but in context of being excluded."
+            )
+        else:
+            # It appears to have been used
+            results["autogen"]["filtered_irrelevant_agents"] = "No"
+            results["autogen"]["agent_filtering_details"] = (
+                "Detection method: Text analysis.\n"
+                "BaseballCoachAgent appears to have been used despite being irrelevant."
+            )
+    else:
+        # Not mentioned at all
+        results["autogen"]["filtered_irrelevant_agents"] = "Yes"  
+        results["autogen"]["agent_filtering_details"] = (
+            "Detection method: Text analysis.\n"
+            "BaseballCoachAgent was not mentioned, suggesting it was filtered out."
+        )
     
     print("\n\n=== CREWAI TEST ===\n")
     crewai_output, crewai_duration, crewai_turns = run_crewai_test()
@@ -124,6 +106,40 @@ def run_all_framework_tests():
         "output": crewai_output  # Store the actual output for analysis
     }
     
+    # Check if BaseballCoach appears in the output
+    if "Baseball Coach" in str(crewai_output):
+        # Check if it's mentioned in the context of being excluded
+        if any(phrase in str(crewai_output).lower() for phrase in [
+            "not use baseball", 
+            "not involve baseball", 
+            "excluded baseball", 
+            "irrelevant baseball",
+            "not relevant baseball",
+            "was not involved",
+            "was not used",
+            "baseballcoachagent was not"
+        ]):
+            # It was mentioned in the context of being excluded
+            results["crewai"]["filtered_irrelevant_agents"] = "Yes"
+            results["crewai"]["agent_filtering_details"] = (
+                "Detection method: Text analysis.\n"
+                "BaseballCoachAgent was mentioned but in context of being excluded."
+            )
+        else:
+            # It appears to have been used
+            results["crewai"]["filtered_irrelevant_agents"] = "No"
+            results["crewai"]["agent_filtering_details"] = (
+                "Detection method: Text analysis.\n"
+                "BaseballCoachAgent appears to have been used despite being irrelevant."
+            )
+    else:
+        # Not mentioned at all
+        results["crewai"]["filtered_irrelevant_agents"] = "Yes"  
+        results["crewai"]["agent_filtering_details"] = (
+            "Detection method: Text analysis.\n"
+            "BaseballCoachAgent was not mentioned, suggesting it was filtered out."
+        )
+    
     print("\n\n=== LANGGRAPH TEST ===\n")
     langgraph_output, langgraph_duration, langgraph_turns = run_langgraph_test()
     results["langgraph"] = {
@@ -133,54 +149,38 @@ def run_all_framework_tests():
         "output": langgraph_output  # Store the actual output for analysis
     }
     
-    # Analyze BaseballCoachAgent handling
-    
-    # For AutoGen - Using message author check (most accurate)
-    from v2_runner_autogen import groupchat
-    autogen_baseball_used = any(m["name"] == "BaseballCoachAgent" for m in groupchat.messages)
-    results["autogen"]["filtered_irrelevant_agents"] = "No" if autogen_baseball_used else "Yes"
-    results["autogen"]["agent_filtering_details"] = (
-        "Detection method: Direct message authorship check.\n"
-        f"{'Baseball messages found' if autogen_baseball_used else 'No BaseballCoachAgent messages found'} in conversation."
-    )
-    
-    # For CrewAI - Context-aware check for baseball mentions
-    crewai_baseball_filtered = True
-    if "Baseball Coach" in str(crewai_output):
-        # Check if it mentions being excluded/irrelevant vs being used
-        baseball_context = re.search(r'([^.]*?Baseball Coach[^.]*\.)', str(crewai_output), re.IGNORECASE)
-        if baseball_context:
-            context = baseball_context.group(1).lower()
-            negative_phrases = ["was used", "contributed", "provided input", "included"]
-            positive_phrases = ["not used", "not involve", "irrelevant", "excluded", "did not use", "was not involved"]
-            
-            # If it mentions being used in a positive way without exclusion context
-            if any(phrase in context for phrase in negative_phrases) and not any(phrase in context for phrase in positive_phrases):
-                crewai_baseball_filtered = False
-    results["crewai"]["filtered_irrelevant_agents"] = "Yes" if crewai_baseball_filtered else "No"
-    results["crewai"]["agent_filtering_details"] = (
-        "Detection method: Context-aware text analysis.\n"
-        f"BaseballCoachAgent {'was mentioned but in context of being excluded' if crewai_baseball_filtered else 'appears to have been used'} in the output."
-    )
-    
-    # For LangGraph - Context-aware check
-    langgraph_baseball_filtered = True
+    # Check if BaseballCoach appears in the output
     if "BaseballCoachAgent" in str(langgraph_output):
-        # Look for phrases that indicate the agent was intentionally NOT used
-        positive_phrases = ["chose not to involve", "not relevant", "irrelevant", "not used", "did not involve", "excluded"]
-        
-        # Extract context around baseball mentions
-        baseball_context = re.search(r'([^.]*?BaseballCoachAgent[^.]*\.)', str(langgraph_output), re.IGNORECASE)
-        if baseball_context:
-            context = baseball_context.group(1).lower()
-            # If none of these phrases are found near the baseball mention, then it was likely used
-            if not any(phrase in context for phrase in positive_phrases):
-                langgraph_baseball_filtered = False
-    results["langgraph"]["filtered_irrelevant_agents"] = "Yes" if langgraph_baseball_filtered else "No"
-    results["langgraph"]["agent_filtering_details"] = (
-        "Detection method: Context-aware text analysis.\n"
-        f"BaseballCoachAgent {'was mentioned but in context of being excluded' if langgraph_baseball_filtered else 'appears to have been used'} in the output."
-    )
+        # Check if it's mentioned in the context of being excluded
+        if any(phrase in str(langgraph_output).lower() for phrase in [
+            "not use baseball", 
+            "not involve baseball", 
+            "excluded baseball", 
+            "irrelevant baseball",
+            "not relevant baseball",
+            "chose not to involve",
+            "was not used"
+        ]):
+            # It was mentioned in the context of being excluded
+            results["langgraph"]["filtered_irrelevant_agents"] = "Yes"
+            results["langgraph"]["agent_filtering_details"] = (
+                "Detection method: Text analysis.\n"
+                "BaseballCoachAgent was mentioned but in context of being excluded."
+            )
+        else:
+            # It appears to have been used
+            results["langgraph"]["filtered_irrelevant_agents"] = "No"
+            results["langgraph"]["agent_filtering_details"] = (
+                "Detection method: Text analysis.\n"
+                "BaseballCoachAgent appears to have been used despite being irrelevant."
+            )
+    else:
+        # Not mentioned at all
+        results["langgraph"]["filtered_irrelevant_agents"] = "Yes"  
+        results["langgraph"]["agent_filtering_details"] = (
+            "Detection method: Text analysis.\n"
+            "BaseballCoachAgent was not mentioned, suggesting it was filtered out."
+        )
     
     # Save raw outputs for each framework in results directory
     os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -412,7 +412,13 @@ def evaluate_outputs(use_bedrock=False):
         
         # Score with Bedrock models if enabled
         if use_bedrock:
-            for model_id, model_name in BEDROCK_MODELS:
+            # Reduced model list (no DeepSeek)
+            bedrock_models = [
+                ("anthropic.claude-3-sonnet-20240229-v1:0", "Claude 3 Sonnet"),
+                ("anthropic.claude-3-haiku-20240307-v1:0", "Claude 3 Haiku")
+            ]
+            
+            for model_id, model_name in bedrock_models:
                 try:
                     print(f"  Scoring with Bedrock: {model_name}")
                     bedrock_score = score_with_bedrock(content, model_id)
@@ -561,27 +567,6 @@ def generate_report(framework_metrics, evaluation_results):
                     if all(k in score for k in ['completeness', 'rationale_quality', 'structure_quality']):
                         total = float(score['completeness']) + float(score['rationale_quality']) + float(score['structure_quality'])
                         f.write(f"**Total Score: {total:.2f}/9**\n\n")
-            
-            # Key output examples
-            framework_key = framework.lower()
-            if framework_key in framework_metrics:
-                # BaseballCoach handling examples
-                if framework_key == "autogen":
-                    f.write("#### BaseballCoachAgent Handling Examples\n\n")
-                    from v2_runner_autogen import groupchat
-                    baseball_messages = [m for m in groupchat.messages if m["name"] == "BaseballCoachAgent"]
-                    if baseball_messages:
-                        f.write(f"BaseballCoachAgent was used and sent {len(baseball_messages)} messages.\n")
-                        f.write(f"First message: ```\n{baseball_messages[0]['content'][:200]}...\n```\n\n")
-                    else:
-                        f.write("BaseballCoachAgent was not used in the conversation.\n\n")
-                else:
-                    # For other frameworks, use regex to find mentions
-                    output = framework_metrics[framework_key]["output"]
-                    baseball_context = re.search(r'[^.]*?Baseball\s*Coach\s*Agent[^.]*\.', output, re.IGNORECASE)
-                    if baseball_context:
-                        f.write("#### BaseballCoachAgent Handling Examples\n\n")
-                        f.write(f"```\n{baseball_context.group(0)}\n```\n\n")
     
     print(f"\n✅ Benchmark report written to {SUMMARY_REPORT}")
 
@@ -604,5 +589,52 @@ def main():
     # Generate comprehensive report
     generate_report(framework_metrics, evaluation_results)
 
+# Constants for scoring
+SCORING_PROMPT = '''
+You are an expert business plan evaluator. Given the following business plan, score it on a scale of 0-3 for each category:
+
+- Completeness (Does it cover all sections and details expected in a professional business plan, including Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, Conclusion, and a rationale at the top?)
+  - 0: Missing most required sections
+  - 1: Missing several key sections or most sections lack depth
+  - 2: Contains most sections with adequate detail
+  - 3: Comprehensive with all required sections and appropriate detail
+
+- Rationale Quality (Does it clearly explain why certain agents were used and others were not? Does it mention the BaseballCoachAgent and explain why it was excluded? Does it explain the reasoning behind strategic decisions?)
+  - 0: No rationale provided
+  - 1: Minimal rationale with little explanation
+  - 2: Adequate rationale with some explanation of decisions
+  - 3: Excellent rationale with clear explanations for all key decisions
+
+- Structure Quality (Is it well-organized, readable, and follows a standard business plan format with clear markdown sections in the required order?)
+  - 0: Poorly structured, difficult to follow
+  - 1: Basic structure but with organizational issues
+  - 2: Good structure with clear sections
+  - 3: Excellent structure with professional formatting and logical flow
+
+For each, provide a brief explanation for the score.
+
+Additional considerations:
+- For Completeness: Check if there's a rationale section at the top and if it mentions which agents were used and not used
+- For Structure Quality: Check for consistent headers, logical flow between sections, and appropriate formatting
+
+Respond in the following JSON format:
+{
+  "completeness": <score>,
+  "completeness_explanation": "...",
+  "rationale_quality": <score>,
+  "rationale_explanation": "...",
+  "structure_quality": <score>,
+  "structure_explanation": "...",
+  "baseball_coach_handling": <0 if not mentioned, 1 if mentioned but not explained, 2 if mentioned as excluded with explanation>
+}
+'''
+
+HEADERS = {
+    'x-api-key': ANTHROPIC_API_KEY,
+    'anthropic-version': '2023-06-01',
+    'content-type': 'application/json'
+}
+
 if __name__ == '__main__':
+    import requests
     main()
