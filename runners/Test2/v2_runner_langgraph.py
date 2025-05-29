@@ -9,7 +9,7 @@ from langchain.agents import Tool, AgentExecutor, create_openai_functions_agent
 from typing import TypedDict
 
 # Import common configurations
-from Shared.config_common import SYSTEM_PROMPTS, USER_GOAL, BEDROCK_MODELS, bedrock_score, save_results
+from Shared.config_common import SYSTEM_PROMPTS, USER_GOAL, save_results
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 
@@ -163,14 +163,8 @@ def run_langgraph_test():
         "BaseballCoachAgent"
     ] if tool in final_output)
     
-    # Run Bedrock scoring using the standardized function
-    bedrock_scores = {}
-    for model_id, label in BEDROCK_MODELS:
-        scores = bedrock_score(final_output, model_id, label)
-        bedrock_scores[label] = scores
-    
-    # Save results using the standardized function
-    save_results("langgraph", final_output, duration, agent_turns, bedrock_scores)
+    # Save results (Bedrock scoring removed)
+    save_results("langgraph", final_output, duration, agent_turns)
     
     return final_output, duration, agent_turns
 

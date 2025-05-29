@@ -8,7 +8,7 @@ from glob import glob
 from datetime import datetime
 
 # Add paths to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'Test2'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'runners/Test2'))
 
 # Import the testing functions from each framework
 from v2_runner_autogen import run_autogen_test
@@ -23,7 +23,6 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 ANTHROPIC_MODEL = 'claude-3-sonnet-20240229'
 
 # Bedrock config for multi-model scoring
-BEDROCK_ENABLED = os.getenv('AWS_ACCESS_KEY_ID') is not None
 BEDROCK_MODELS = [
     ("anthropic.claude-3-sonnet-20240229-v1:0", "Claude 3 Sonnet"),
     ("anthropic.claude-3-haiku-20240307-v1:0", "Claude 3 Haiku"),
@@ -74,6 +73,22 @@ HEADERS = {
     'anthropic-version': '2023-06-01',
     'content-type': 'application/json'
 }
+
+# === AWS Credentials Check ===
+def check_aws_credentials():
+    """Check if AWS credentials from SAM2AWS are available and usable"""
+    try:
+        import boto3
+        # Try to create a simple client to test credentials
+        sts = boto3.client('sts')
+        # Get caller identity will fail if credentials are not valid
+        identity = sts.get_caller_identity()
+        print(f"✅ AWS credentials found for account: {identity['Account']}")
+        return True
+    except Exception as e:
+        print(f"❌ AWS credentials not available or invalid: {e}")
+        print("   Using only Claude API for evaluation.")
+        return False
 
 # === FRAMEWORK TESTING ===
 def run_all_framework_tests():
@@ -258,12 +273,10 @@ def score_with_anthropic(plan_md):
         return {"error": f"API request failed: {str(e)}"}
 
 def score_with_bedrock(plan_md, model_id):
-    """Score plan using AWS Bedrock models"""
-    if not BEDROCK_ENABLED:
-        return {"error": "AWS credentials not configured"}
-    
+    """Score plan using AWS Bedrock models with SAM2AWS credentials"""
     try:
         import boto3
+        import botocore
         
         # Truncate content to fit model limits
         truncated_plan = plan_md[:10000]  # Adjust depending on model token limits
@@ -288,8 +301,22 @@ def score_with_bedrock(plan_md, model_id):
         else:
             return {"error": f"Unsupported model: {model_id}"}
         
-        # Make Bedrock request
-        bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
+        # Create session with explicit credential handling that works with SAM2AWS
+        session = boto3.Session()
+        
+        # Make Bedrock request with explicit region
+        bedrock = session.client(
+            "bedrock-runtime", 
+            region_name="us-east-1",
+            # Use existing credentials from SAM2AWS-created session
+            config=botocore.config.Config(
+                retries={"max_attempts": 2, "mode": "standard"},
+                connect_timeout=30,
+                read_timeout=30
+            )
+        )
+        
+        print(f"  Calling Bedrock with model: {model_id}")
         response = bedrock.invoke_model(
             modelId=model_id,
             body=json.dumps(body),
@@ -301,7 +328,11 @@ def score_with_bedrock(plan_md, model_id):
         response_body = json.loads(response["body"].read())
         
         if "anthropic" in model_id:
-            content = response_body.get("content", [])[0].get("text", "")
+            content = response_body.get("content", [])
+            if isinstance(content, list) and len(content) > 0 and "text" in content[0]:
+                content = content[0]["text"]
+            else:
+                content = str(content)
         elif "meta.llama" in model_id:
             content = response_body.get("generation", "")
         else:
@@ -328,12 +359,16 @@ def score_with_bedrock(plan_md, model_id):
                     if explanation_match:
                         scores[f"{category}_explanation"] = explanation_match.group(1).strip()
                 
-                return scores
+                if scores:
+                    return scores
+                else:
+                    return {"error": "Could not extract scores from response", "raw": content[:500]}
                 
         except Exception as e:
-            return {"error": f"Could not parse Bedrock response: {str(e)}", "raw": content}
+            return {"error": f"Could not parse Bedrock response: {str(e)}", "raw": content[:500]}
     
     except Exception as e:
+        print(f"  ❌ Bedrock error: {str(e)}")
         return {"error": f"Bedrock error: {str(e)}"}
 
 # === NORMALIZATION AND EVALUATION ===
@@ -350,7 +385,7 @@ def normalize_outputs():
         print(f"❌ Normalization failed: {e}")
         return False
 
-def evaluate_outputs():
+def evaluate_outputs(use_bedrock=False):
     """Score normalized outputs with multiple models"""
     print("\nEvaluating framework outputs...")
     md_files = glob(os.path.join(NORMALIZED_DIR, 'normalized_*_dynamic_orchestration.md'))
@@ -376,7 +411,7 @@ def evaluate_outputs():
         scores = [claude_score]
         
         # Score with Bedrock models if enabled
-        if BEDROCK_ENABLED:
+        if use_bedrock:
             for model_id, model_name in BEDROCK_MODELS:
                 try:
                     print(f"  Scoring with Bedrock: {model_name}")
@@ -386,6 +421,8 @@ def evaluate_outputs():
                     print(f"  ✅ {model_name} scoring complete")
                 except Exception as e:
                     print(f"  ❌ {model_name} scoring failed: {e}")
+                # Add slight delay between model calls
+                time.sleep(1.0)
         
         results.append({
             "file": os.path.basename(md_path),
@@ -433,9 +470,9 @@ def generate_report(framework_metrics, evaluation_results):
             
             if valid_scores:
                 # Calculate averages
-                completeness_avg = sum(int(s.get("completeness", 0)) for s in valid_scores) / len(valid_scores)
-                rationale_avg = sum(int(s.get("rationale_quality", 0)) for s in valid_scores) / len(valid_scores)
-                structure_avg = sum(int(s.get("structure_quality", 0)) for s in valid_scores) / len(valid_scores)
+                completeness_avg = sum(float(s.get("completeness", 0)) for s in valid_scores) / len(valid_scores)
+                rationale_avg = sum(float(s.get("rationale_quality", 0)) for s in valid_scores) / len(valid_scores)
+                structure_avg = sum(float(s.get("structure_quality", 0)) for s in valid_scores) / len(valid_scores)
                 
                 # Get baseball handling from Claude (more reliable)
                 claude_score = next((s for s in result["scores"] if s.get("model") == "claude-3-sonnet"), {})
@@ -522,8 +559,8 @@ def generate_report(framework_metrics, evaluation_results):
                     f.write(f"**BaseballCoachAgent Handling:** {baseball_text}\n\n")
                     
                     if all(k in score for k in ['completeness', 'rationale_quality', 'structure_quality']):
-                        total = int(score['completeness']) + int(score['rationale_quality']) + int(score['structure_quality'])
-                        f.write(f"**Total Score: {total}/9**\n\n")
+                        total = float(score['completeness']) + float(score['rationale_quality']) + float(score['structure_quality'])
+                        f.write(f"**Total Score: {total:.2f}/9**\n\n")
             
             # Key output examples
             framework_key = framework.lower()
@@ -558,8 +595,11 @@ def main():
     if not normalize_success:
         print("⚠️ Continuing with evaluation despite normalization issues.")
     
-    # Score outputs
-    evaluation_results = evaluate_outputs()
+    # Check for AWS credentials
+    use_bedrock = check_aws_credentials()
+    
+    # Score outputs with appropriate models
+    evaluation_results = evaluate_outputs(use_bedrock=use_bedrock)
     
     # Generate comprehensive report
     generate_report(framework_metrics, evaluation_results)

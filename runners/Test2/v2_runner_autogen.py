@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
 
 # Import common configurations
-from Shared.config_common import SYSTEM_PROMPTS, USER_GOAL, BEDROCK_MODELS, bedrock_score, save_results
+from Shared.config_common import SYSTEM_PROMPTS, USER_GOAL, save_results
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 
@@ -247,13 +247,7 @@ def run_autogen_test():
             final_plan = assembled_plan
             print(f"[DEBUG] Assembled plan from sections, total length: {len(final_plan)}")
 
-    # Run Bedrock scoring using the standardized function
-    bedrock_scores = {}
-    for model_id, label in BEDROCK_MODELS:
-        scores = bedrock_score(final_plan, model_id, label)
-        bedrock_scores[label] = scores
-    
-    # Create custom output that includes framework behavior analysis
+    # Save results and output (Bedrock scoring removed)
     os.makedirs("results", exist_ok=True)
     try:
         output_file = "results/b2_autogen_dynamic_orchestration.md"
@@ -296,18 +290,6 @@ def run_autogen_test():
             # Write standard metadata
             f.write(f"\n\n**Time to complete:** {duration} seconds\n")
             f.write(f"\n**Agent turns:** {agent_turns}\n")
-            
-            # Write bedrock scores
-            f.write("\n**Bedrock LLM Scores:**\n")
-            f.write("| Model | Completeness | Rationale Quality | Structure Quality |\n")
-            f.write("| --- | --- | --- | --- |\n")
-            
-            for label, scores in bedrock_scores.items():
-                completeness = scores.get("completeness", "N/A") 
-                rationale = scores.get("rationale_quality", "N/A")
-                structure = scores.get("structure_quality", "N/A")
-                f.write(f"| {label} | {completeness} | {rationale} | {structure} |\n")
-            
         print(f"[DEBUG] Successfully wrote output to {output_file}")
     except Exception as e:
         print(f"[ERROR] Failed to write output file: {str(e)}")
@@ -322,6 +304,8 @@ def run_autogen_test():
             print(f"[ERROR] Even fallback file writing failed: {str(inner_e)}")
     
     # Return values for the comparison script
+    # Save results (Bedrock scoring removed)
+    save_results("autogen", final_plan, duration, agent_turns, {})
     return final_plan, duration, agent_turns
 
 if __name__ == "__main__":
