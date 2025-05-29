@@ -1,27 +1,67 @@
 # Multi-Agent Orchestration Benchmark Report
 
-| Framework | Completeness | Rationale | Structure |
-|-----------|--------------|-----------|-----------|
-| Crewai | 2 | 3 | 3 |
-| Autogen | 1 | 1 | 1 |
-| Langgraph | 1 | 1 | 1 |
+## Overall Scores
+
+| Framework | Completeness | Rationale | Structure | BaseballCoach Handling |
+|-----------|--------------|-----------|-----------|------------------------|
+| Crewai | 2 | 3 | 2 | 2 (Properly excluded) |
+| Autogen | 3 | 3 | 3 | 2 (Properly excluded) |
+| Langgraph | 2 | 3 | 3 | 2 (Properly excluded) |
+
+## Framework Rankings
+
+| Rank | Framework | Total Score |
+|------|-----------|-------------|
+| 1 | Autogen | 9/15 |
+| 2 | Langgraph | 8/15 |
+| 3 | Crewai | 7/15 |
 
 ---
 
-## Detailed Explanations
+## Detailed Evaluations
 
 ### Crewai
-- **Completeness (2):** The business plan covers some key sections like executive summary, product strategy, go-to-market plan, and a detailed 12-week rollout timeline. However, it lacks important sections like market analysis, financial projections, team information, and risks/mitigation.
-- **Rationale (3):** The sections that are present provide clear reasoning and logical connections for the decisions made, such as the product differentiation strategy, feature set rationale, and the phased rollout approach with specific milestones.
-- **Structure (3):** The business plan follows a standard structure with separate sections for different components. The information is well-organized and presented in a readable format, with effective use of headings, bullet points, and a table for the rollout timeline.
+
+#### Completeness: 2/5
+The rationale section mentions most of the key sections expected in a business plan, such as Executive Summary, Market Analysis, Product Strategy, Go-to-Market Plan, Financial Projections, Team & Roles, Risks & Mitigation, and 12-Week Rollout Timeline. However, there is no actual content provided for these sections.
+
+#### Rationale Quality: 3/5
+The rationale section clearly explains why certain agents were used to cover the necessary components of the business plan, and why the BaseballCoachAgent was excluded as irrelevant to the context of launching a productivity app. It also provides a good explanation of how the different sections fit together to create a cohesive strategy.
+
+#### Structure Quality: 2/5
+The structure follows the standard business plan format with clear sections in the expected order. However, most sections are empty, lacking any content.
+
+#### BaseballCoachAgent Handling: BaseballCoachAgent was properly excluded with explanation
+
+**Total Score: 7/15**
 
 ### Autogen
-- **Completeness (1):** The business plan provided has no content in any of the expected sections, making it incomplete.
-- **Rationale (1):** With no details or explanations provided, there is no basis to evaluate the rationale or logic behind any decisions.
-- **Structure (1):** While the section headings follow a typical business plan structure, the complete lack of content in every section makes the structure meaningless.
+
+#### Completeness: 3/5
+The business plan covers all required sections with appropriate detail, including a rationale section at the top mentioning which agents were used and not used.
+
+#### Rationale Quality: 3/5
+The rationale clearly explains why each agent was chosen for its respective section and the reasoning behind excluding the BaseballCoachAgent as irrelevant for a tech app business plan.
+
+#### Structure Quality: 3/5
+The plan follows a logical structure with clear sections in the expected order, using consistent markdown formatting.
+
+#### BaseballCoachAgent Handling: BaseballCoachAgent was properly excluded with explanation
+
+**Total Score: 9/15**
 
 ### Langgraph
-- **Completeness (1):** The business plan does not contain any content and is completely empty, failing to cover the essential sections expected in a professional business plan.
-- **Rationale (1):** Without any substantive content, there is no reasoning or rationale provided to explain the decisions and strategies behind the business idea.
-- **Structure (1):** The business plan lacks any discernible structure or organization, as it is entirely blank and does not follow the standard format for a business plan.
+
+#### Completeness: 2/5
+The business plan covers most of the required sections with adequate detail, including the Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, and Conclusion. However, it is missing the actual content for these sections.
+
+#### Rationale Quality: 3/5
+The rationale section clearly explains which agents were used and their respective roles in developing the business plan. It also mentions the BaseballCoachAgent and provides a reasonable explanation for excluding it.
+
+#### Structure Quality: 3/5
+The business plan follows a standard structure with clear sections in the required order. The formatting with markdown headers is professional and the flow between sections is logical.
+
+#### BaseballCoachAgent Handling: BaseballCoachAgent was properly excluded with explanation
+
+**Total Score: 8/15**
 
