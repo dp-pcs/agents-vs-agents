@@ -8,88 +8,173 @@ from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
-    model="gpt-4",
+    model="gpt-4o",
     temperature=0.3,
     openai_api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # Define sub-agents
+# === Enhanced CrewAI Agent Section Assignments ===
 research_agent = Agent(
-    role="Research Agent",
-    goal="Analyze the competitive landscape for AI note-taking apps",
-    backstory="You are a market analyst skilled in extracting competitive intelligence.",
+    role="Executive Summary Agent",
+    goal="Write the Executive Summary section for a business plan to launch an AI productivity app.",
+    backstory="You are a business analyst skilled in summarizing strategic initiatives. Output a markdown section titled '# Executive Summary'.",
+    llm=llm,
+    verbose=True
+)
+
+market_analysis_agent = Agent(
+    role="Market Analysis Agent",
+    goal="Write the Market Analysis section for a business plan to launch an AI productivity app.",
+    backstory="You are a market research expert. Output a markdown section titled '# Market Analysis'.",
     llm=llm,
     verbose=True
 )
 
 product_agent = Agent(
-    role="Product Agent",
-    goal="Design an MVP feature set for the AI note-taking app",
-    backstory="You are a senior product manager focused on AI UX.",
+    role="Product Strategy Agent",
+    goal="Write the Product Strategy section for a business plan to launch an AI productivity app.",
+    backstory="You are a senior product manager. Output a markdown section titled '# Product Strategy'.",
     llm=llm,
     verbose=True
 )
 
-marketing_agent = Agent(
-    role="Marketing Agent",
-    goal="Draft a product launch campaign for the new app",
-    backstory="You are a marketing strategist with experience in SaaS launches.",
+go_to_market_agent = Agent(
+    role="Go-to-Market Agent",
+    goal="Write the Go-to-Market Plan section for a business plan to launch an AI productivity app.",
+    backstory="You are a marketing strategist. Output a markdown section titled '# Go-to-Market Plan'.",
+    llm=llm,
+    verbose=True
+)
+
+financial_agent = Agent(
+    role="Financial Agent",
+    goal="Write the Financial Projections section for a business plan to launch an AI productivity app.",
+    backstory="You are a finance expert. Output a markdown section titled '# Financial Projections'.",
+    llm=llm,
+    verbose=True
+)
+
+team_agent = Agent(
+    role="Team Agent",
+    goal="Write the Team & Roles section for a business plan to launch an AI productivity app.",
+    backstory="You are an HR and org design expert. Output a markdown section titled '# Team & Roles'.",
+    llm=llm,
+    verbose=True
+)
+
+risks_agent = Agent(
+    role="Risks Agent",
+    goal="Write the Risks & Mitigation section for a business plan to launch an AI productivity app.",
+    backstory="You are a risk management consultant. Output a markdown section titled '# Risks & Mitigation'.",
     llm=llm,
     verbose=True
 )
 
 pm_agent = Agent(
-    role="Project Manager Agent",
-    goal="Define a 3-month rollout timeline with key milestones",
-    backstory="You are a project manager known for fast execution plans.",
+    role="Timeline Agent",
+    goal="Write the 12-Week Rollout Timeline section for a business plan to launch an AI productivity app.",
+    backstory="You are a project manager. Output a markdown section titled '# 12-Week Rollout Timeline'.",
     llm=llm,
     verbose=True
 )
 
-# Define orchestrator agent
+conclusion_agent = Agent(
+    role="Conclusion Agent",
+    goal="Write the Conclusion section for a business plan to launch an AI productivity app.",
+    backstory="You are a business consultant. Output a markdown section titled '# Conclusion'.",
+    llm=llm,
+    verbose=True
+)
+
+baseball_coach_agent = Agent(
+    role="Baseball Coach Agent",
+    goal="Provide advice on baseball coaching, teamwork, and training.",
+    backstory="You are a baseball coach. Your expertise is in sports, not business or software. You give advice on batting, fielding, and team morale.",
+    llm=llm,
+    verbose=True
+)
+
+# Orchestrator agent
 orchestrator = Agent(
     role="Orchestrator Agent",
-    goal="Plan the go-to-market strategy for the AI note-taking app using outputs from all agents.",
-    backstory="You coordinate input from research, product, marketing, and project management to create a final strategic report.",
+    goal="Assemble a comprehensive business plan for an AI productivity app by collecting and combining the markdown sections from all expert agents. At the top, include a rationale for agent selection and a note explaining any agent not used (e.g., BaseballCoachAgent). Output a single markdown file with all sections in order.",
+    backstory="You coordinate expert agents to create a professional business plan. The BaseballCoachAgent is not relevant to the business task.",
     llm=llm,
     verbose=True
 )
 
-# Define tasks
-task_research = Task(
-    description="Find the top 3 competitors in the AI note-taking space and summarize their features and pricing.",
-    expected_output="Summary of 3 competitors with bullet points.",
+# Define tasks for each section
+task_executive = Task(
+    description="Write the Executive Summary for a business plan to launch an AI productivity app. Output a markdown section titled '# Executive Summary'.",
+    expected_output="# Executive Summary section in markdown.",
     agent=research_agent
 )
 
+task_market = Task(
+    description="Write the Market Analysis section for a business plan to launch an AI productivity app. Output a markdown section titled '# Market Analysis'.",
+    expected_output="# Market Analysis section in markdown.",
+    agent=market_analysis_agent
+)
+
 task_product = Task(
-    description="Define a minimum viable feature set for an AI-powered note-taking app.",
-    expected_output="List of 6–8 core features.",
+    description="Write the Product Strategy section for a business plan to launch an AI productivity app. Output a markdown section titled '# Product Strategy'.",
+    expected_output="# Product Strategy section in markdown.",
     agent=product_agent
 )
 
-task_marketing = Task(
-    description="Draft a 3-paragraph product launch campaign including positioning and audience.",
-    expected_output="Launch copy + high-level targeting plan.",
-    agent=marketing_agent
+task_goto = Task(
+    description="Write the Go-to-Market Plan section for a business plan to launch an AI productivity app. Output a markdown section titled '# Go-to-Market Plan'.",
+    expected_output="# Go-to-Market Plan section in markdown.",
+    agent=go_to_market_agent
 )
 
-task_pm = Task(
-    description="Create a 12-week timeline with milestones for building and launching the product.",
-    expected_output="Timeline in markdown table format with 4–5 phases.",
+task_financial = Task(
+    description="Write the Financial Projections section for a business plan to launch an AI productivity app. Output a markdown section titled '# Financial Projections'.",
+    expected_output="# Financial Projections section in markdown.",
+    agent=financial_agent
+)
+
+task_team = Task(
+    description="Write the Team & Roles section for a business plan to launch an AI productivity app. Output a markdown section titled '# Team & Roles'.",
+    expected_output="# Team & Roles section in markdown.",
+    agent=team_agent
+)
+
+task_risks = Task(
+    description="Write the Risks & Mitigation section for a business plan to launch an AI productivity app. Output a markdown section titled '# Risks & Mitigation'.",
+    expected_output="# Risks & Mitigation section in markdown.",
+    agent=risks_agent
+)
+
+task_timeline = Task(
+    description="Write the 12-Week Rollout Timeline section for a business plan to launch an AI productivity app. Output a markdown section titled '# 12-Week Rollout Timeline'.",
+    expected_output="# 12-Week Rollout Timeline section in markdown.",
     agent=pm_agent
 )
 
+task_conclusion = Task(
+    description="Write the Conclusion section for a business plan to launch an AI productivity app. Output a markdown section titled '# Conclusion'.",
+    expected_output="# Conclusion section in markdown.",
+    agent=conclusion_agent
+)
+
+task_baseball = Task(
+    description="Provide baseball coaching advice for launching an AI productivity app (should be irrelevant to the business plan).",
+    expected_output="A short paragraph of baseball coaching advice.",
+    agent=baseball_coach_agent
+)
+
 task_orchestrator = Task(
-    description="Take all other outputs and summarize into a 1-page go-to-market report.",
-    expected_output="Integrated strategy document.",
+    description="Collect all markdown sections from the expert agents and assemble a single, comprehensive business plan. At the top, include a rationale for agent selection and a note about the BaseballCoachAgent. Output a markdown file with all sections in order.",
+    expected_output="Full business plan in markdown, with rationale and agent notes at the top.",
     agent=orchestrator
 )
 
 # Run the orchestrated crew
 crew = Crew(
-    agents=[research_agent, product_agent, marketing_agent, pm_agent, orchestrator],
-    tasks=[task_research, task_product, task_marketing, task_pm, task_orchestrator],
+    agents=[research_agent, market_analysis_agent, product_agent, go_to_market_agent, financial_agent, team_agent, risks_agent, pm_agent, conclusion_agent, baseball_coach_agent, orchestrator],
+    tasks=[task_executive, task_market, task_product, task_goto, task_financial, task_team, task_risks, task_timeline, task_conclusion, task_baseball, task_orchestrator],
     verbose=True
 )
 
@@ -102,7 +187,17 @@ duration = round(end - start, 2)
 # Count agent turns (excluding orchestrator)
 def count_agent_turns(output):
     # Simple heuristic: count agent role mentions in the result
-    return sum(output.count(agent.role) for agent in [research_agent, product_agent, marketing_agent, pm_agent])
+    return sum(output.count(agent.role) for agent in [
+        research_agent,
+        market_analysis_agent,
+        product_agent,
+        go_to_market_agent,
+        financial_agent,
+        team_agent,
+        risks_agent,
+        pm_agent,
+        conclusion_agent
+    ])
 agent_turns = count_agent_turns(str(result))
 
 # Manual scores (placeholders)
@@ -143,6 +238,71 @@ llm_score = perplexity_score(str(result))
 # Multi-model Bedrock scoring
 import boto3
 import json
+import re
+
+def get_bedrock_body(model_id, prompt, max_tokens=512):
+    if "anthropic" in model_id:
+        return {
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": 0.2,
+            "anthropic_version": "bedrock-2023-05-31"
+        }
+    elif "deepseek" in model_id:
+        return {
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens
+        }
+    else:
+        return {
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "temperature": 0.2
+        }
+
+def extract_scores(raw_response):
+    try:
+        # Remove markdown/code block wrappers if present
+        json_match = re.search(r'```json\\n?(.*?)```', raw_response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(1)
+        else:
+            json_str = raw_response
+
+        # Try to parse JSON
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError:
+            # Extract numeric scores from explanations
+            scores = {}
+            for line in raw_response.splitlines():
+                match = re.search(r'(\d+(?:\.\d+)?)\/3', line)
+                if match:
+                    score = float(match.group(1))
+                    if 'completeness' in line.lower():
+                        scores['completeness'] = score
+                    elif 'rationale quality' in line.lower():
+                        scores['rationale_quality'] = score
+                    elif 'structure quality' in line.lower():
+                        scores['structure_quality'] = score
+            return scores
+        else:
+            # Handle nested JSON
+            def extract_scores(data):
+                scores = {}
+                for key, value in data.items():
+                    if isinstance(value, dict):
+                        scores.update(extract_scores(value))
+                    elif key in ["completeness", "rationale_quality", "structure_quality"]:
+                        scores[key] = value
+                    elif key == "scores":
+                        scores.update(value)
+                return scores
+
+            scores = extract_scores(data)
+            return scores
+    except Exception as e:
+        return {}
 
 def bedrock_score(plan, model_id, label):
     try:
@@ -151,11 +311,7 @@ def bedrock_score(plan, model_id, label):
             "Score the following business plan for completeness, rationale quality, and structure quality on a scale of 0–3. "
             "Return a JSON object with the scores and a brief explanation.\n\nBusiness Plan:\n" + plan
         )
-        body = {
-            "prompt": prompt,
-            "max_tokens_to_sample": 512,
-            "temperature": 0.2
-        }
+        body = get_bedrock_body(model_id, prompt)
         response = bedrock.invoke_model(
             modelId=model_id,
             body=json.dumps(body),
@@ -163,9 +319,10 @@ def bedrock_score(plan, model_id, label):
             contentType="application/json"
         )
         result = response['body'].read().decode()
-        return f"**{label} Score:**\n{result}\n"
+        scores = extract_scores(result)
+        return scores
     except Exception as e:
-        return f"**{label} Score:** Bedrock API call failed: {str(e)}\n"
+        return {}
 
 bedrock_models = [
     ("arn:aws:bedrock:us-east-1:082830052325:inference-profile/us.anthropic.claude-opus-4-20250514-v1:0", "Claude Opus 4"),
@@ -174,20 +331,35 @@ bedrock_models = [
     ("arn:aws:bedrock:us-east-1:082830052325:inference-profile/us.deepseek.r1-v1:0", "DeepSeek-R1"),
 ]
 
-bedrock_scores = ""
+bedrock_scores = {}
 for model_id, label in bedrock_models:
-    bedrock_scores += bedrock_score(str(result), model_id, label)
-
+    scores = bedrock_score(str(result), model_id, label)
+    if scores:
+        bedrock_scores[label] = scores
+    else:
+        bedrock_scores[label] = 'No output.'
 
 # Save the final orchestrated output
 os.makedirs("results", exist_ok=True)
 with open("results/crewai_dynamic_orchestration.md", "w") as f:
-    f.write("# CrewAI Dynamic Orchestration Output\n\n")
+    output_md = f"Generated: 2025-05-28T13:04:52-06:00\n# CrewAI Dynamic Orchestration Output\n\n"
+    f.write(output_md)
     f.write(str(result))
     f.write(f"\n\n**Time to complete:** {duration} seconds\n")
     f.write(f"\n**Agent turns:** {agent_turns}\n")
-    f.write(f"\n**Manual Scores:**\n- Completeness: {completeness_score}\n- Rationale Quality: {rationale_quality}\n- Structure Quality: {structure_quality}\n")
-    f.write(f"\n**Perplexity LLM Score:**\n{llm_score}\n")
-    f.write(f"\n**Bedrock LLM Scores:**\n{bedrock_scores}\n")
+
+    f.write("\n**Bedrock LLM Scores:**\n")
+    f.write("| Model | Completeness | Rationale Quality | Structure Quality |\n")
+    f.write("| --- | --- | --- | --- |\n")
+    for label, scores in bedrock_scores.items():
+        if scores != 'No output.':
+            def fmt(score):
+                try:
+                    return f"{float(score):.2f}" if score is not None and score != 'N/A' else str(score)
+                except Exception:
+                    return str(score)
+            f.write(f"| {label} | {fmt(scores.get('completeness', 'N/A'))}/3 | {fmt(scores.get('rationale_quality', 'N/A'))}/3 | {fmt(scores.get('structure_quality', 'N/A'))}/3 |\n")
+        else:
+            f.write(f"| {label} | {scores} | {scores} | {scores} |\n")
 
 print("✅ Output saved to results/crewai_dynamic_orchestration.md")

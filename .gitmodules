@@ -1,0 +1,12 @@
+[submodule "tools/frameworks_benchmark_runner"]
+	path = tools/frameworks_benchmark_runner
+	url = https://github.com/dp-pcs/frameworks_benchmark_runner.git
+[submodule "tools/test_executor_tool.git"]
+	path = tools/test_executor_tool.git
+	url = https://github.com/dp-pcs/test_executor_tool.git
+[submodule "tools/testdesignertools.git"]
+	path = tools/testdesignertools.git
+	url = https://github.com/dp-pcs/testdesignertool.git
+[submodule "tools/resultformattertool"]
+	path = tools/resultformattertool
+	url = https://github.com/dp-pcs/resultformattertool.git
