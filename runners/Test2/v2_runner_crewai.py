@@ -232,8 +232,62 @@ def run_crewai_test():
         "Baseball Coach Agent"
     ] if agent_name in final_output)
     
-    # Save results (Bedrock scoring removed)
-    save_results("crewai", final_output, duration, agent_turns)
+    # Analyze baseball coach handling
+    baseball_mentioned = "Baseball Coach" in final_output
+    baseball_excluded = any(phrase in final_output.lower() for phrase in [
+        "baseball coach agent was not", 
+        "not involve baseball", 
+        "excluded baseball", 
+        "irrelevant baseball"
+    ])
+    
+    baseball_handling = "Properly excluded" if baseball_mentioned and baseball_excluded else \
+                       "Incorrectly used" if baseball_mentioned else \
+                       "Not mentioned"
+    
+    print(f"BaseballCoachAgent handling: {baseball_handling}")
+    
+    # Create framework behavior analysis
+    os.makedirs("results", exist_ok=True)
+    output_file = os.path.join("results", "b2_crewai_dynamic_orchestration.md")
+    
+    try:
+        print(f"Writing CrewAI output to {output_file}...")
+        with open(output_file, "w", encoding="utf-8") as f:
+            # Header
+            f.write(f"Generated: {datetime.now().isoformat()}\n")
+            f.write("# CrewAI Dynamic Orchestration Output\n\n")
+            
+            # Framework behavior analysis
+            f.write("## Framework Behavior Analysis\n\n")
+            
+            # Document BaseballCoachAgent handling
+            f.write("### Agent Selection:\n")
+            f.write(f"- **BaseballCoachAgent**: {baseball_handling}\n\n")
+            
+            if baseball_mentioned and baseball_excluded:
+                f.write("**FINDING**: BaseballCoachAgent was correctly identified as irrelevant to the business task.\n\n")
+            elif baseball_mentioned:
+                f.write("**FINDING**: BaseballCoachAgent may have been incorrectly used despite being irrelevant to the business task.\n\n")
+            else:
+                f.write("**FINDING**: BaseballCoachAgent was not mentioned in the output.\n\n")
+            
+            # Business plan content
+            f.write("## Business Plan Content\n\n")
+            f.write("```markdown\n")  # Wrap in markdown code block for clarity
+            f.write(final_output)
+            f.write("\n```\n")
+            
+            # Metadata
+            f.write(f"\n\n**Time to complete:** {duration} seconds\n")
+            f.write(f"\n**Agent turns:** {agent_turns}\n")
+        
+        print(f"✅ Output successfully written to {output_file}")
+    except Exception as e:
+        print(f"❌ Error writing output file: {str(e)}")
+    
+    # Save results with an empty bedrock_scores dictionary
+    save_results("crewai", final_output, duration, agent_turns, {})
     
     return final_output, duration, agent_turns
 

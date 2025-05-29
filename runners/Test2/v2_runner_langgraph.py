@@ -7,6 +7,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.agents import Tool, AgentExecutor, create_openai_functions_agent
 from typing import TypedDict
+from datetime import datetime
 
 # Import common configurations
 from Shared.config_common import SYSTEM_PROMPTS, USER_GOAL, save_results
@@ -163,8 +164,61 @@ def run_langgraph_test():
         "BaseballCoachAgent"
     ] if tool in final_output)
     
-    # Save results (Bedrock scoring removed)
-    save_results("langgraph", final_output, duration, agent_turns)
+    # Analyze baseball coach handling
+    baseball_mentioned = "BaseballCoachAgent" in final_output
+    baseball_excluded = any(phrase in final_output.lower() for phrase in [
+        "not use baseballcoachagent", 
+        "not involve baseball", 
+        "excluded baseball", 
+        "irrelevant baseball",
+        "not relevant baseball"
+    ])
+    
+    baseball_handling = "Properly excluded" if baseball_mentioned and baseball_excluded else \
+                       "Incorrectly used" if baseball_mentioned else \
+                       "Not mentioned"
+    
+    print(f"BaseballCoachAgent handling: {baseball_handling}")
+    
+    # Save a custom results file with framework behavior analysis
+    os.makedirs("results", exist_ok=True)
+    output_file = os.path.join("results", "b2_langgraph_dynamic_orchestration.md")
+    
+    try:
+        print(f"Writing LangGraph output to {output_file}...")
+        with open(output_file, "w", encoding="utf-8") as f:
+            # Header
+            f.write(f"Generated: {datetime.now().isoformat()}\n")
+            f.write("# LangGraph Dynamic Orchestration Output\n\n")
+            
+            # Framework behavior analysis
+            f.write("## Framework Behavior Analysis\n\n")
+            
+            # Document BaseballCoachAgent handling
+            f.write("### Agent Selection:\n")
+            f.write(f"- **BaseballCoachAgent**: {baseball_handling}\n\n")
+            
+            if baseball_mentioned and baseball_excluded:
+                f.write("**FINDING**: BaseballCoachAgent was correctly identified as irrelevant to the business task.\n\n")
+            elif baseball_mentioned:
+                f.write("**FINDING**: BaseballCoachAgent may have been incorrectly used despite being irrelevant to the business task.\n\n")
+            else:
+                f.write("**FINDING**: BaseballCoachAgent was not mentioned in the output.\n\n")
+            
+            # Business plan content
+            f.write("## Business Plan Content\n\n")
+            f.write(final_output)
+            
+            # Metadata
+            f.write(f"\n\n**Time to complete:** {duration} seconds\n")
+            f.write(f"\n**Agent turns:** {agent_turns}\n")
+        
+        print(f"✅ Output successfully written to {output_file}")
+    except Exception as e:
+        print(f"❌ Error writing output file: {str(e)}")
+    
+    # Save results with an empty bedrock_scores dictionary
+    save_results("langgraph", final_output, duration, agent_turns, {})
     
     return final_output, duration, agent_turns
 

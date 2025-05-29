@@ -10,171 +10,113 @@ from Shared.config_common import SYSTEM_PROMPTS, USER_GOAL, save_results
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 
-# --- Subclass for message windowing ---
-class WindowedAssistantAgent(AssistantAgent):
-    def __init__(self, *args, max_history=12, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.max_history = max_history
-
-    def generate_reply(self, messages=None, sender=None):
-        if messages is not None and len(messages) > self.max_history:
-            messages = messages[-self.max_history:]
-        return super().generate_reply(messages=messages, sender=sender)
-
-# Config for OpenAI (gpt-4)
-config_list = [{
-    'model': 'gpt-4o',
-    'api_key': os.getenv('OPENAI_API_KEY')
-}]
-
-# Create expert assistant agents using standardized prompts
-research_agent = WindowedAssistantAgent(
-    name="ExecutiveSummaryAgent",
-    system_message=SYSTEM_PROMPTS["executive_summary"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-market_analysis_agent = WindowedAssistantAgent(
-    name="MarketAnalysisAgent",
-    system_message=SYSTEM_PROMPTS["market_analysis"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-product_agent = WindowedAssistantAgent(
-    name="ProductStrategyAgent",
-    system_message=SYSTEM_PROMPTS["product_strategy"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-go_to_market_agent = WindowedAssistantAgent(
-    name="GoToMarketAgent",
-    system_message=SYSTEM_PROMPTS["go_to_market"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-financial_agent = WindowedAssistantAgent(
-    name="FinancialAgent",
-    system_message=SYSTEM_PROMPTS["financial"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-team_agent = WindowedAssistantAgent(
-    name="TeamAgent",
-    system_message=SYSTEM_PROMPTS["team_roles"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-risks_agent = WindowedAssistantAgent(
-    name="RisksAgent",
-    system_message=SYSTEM_PROMPTS["risks"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-pm_agent = WindowedAssistantAgent(
-    name="TimelineAgent",
-    system_message=SYSTEM_PROMPTS["timeline"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-conclusion_agent = WindowedAssistantAgent(
-    name="ConclusionAgent",
-    system_message=SYSTEM_PROMPTS["conclusion"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-baseball_coach_agent = WindowedAssistantAgent(
-    name="BaseballCoachAgent",
-    system_message=SYSTEM_PROMPTS["baseball_coach"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-# Orchestrator agent
-orchestrator = WindowedAssistantAgent(
-    name="COOAgent",
-    system_message=SYSTEM_PROMPTS["orchestrator"],
-    llm_config={"config_list": config_list},
-    max_history=12
-)
-
-# User Proxy Agent (simulates the user)
-user_proxy = UserProxyAgent(
-    name="UserProxy",
-    human_input_mode="NEVER",
-    code_execution_config=False
-)
-
-# Group chat configuration
-groupchat = GroupChat(
-    agents=[
-        user_proxy,
-        orchestrator,
-        research_agent,
-        market_analysis_agent,
-        product_agent,
-        go_to_market_agent,
-        financial_agent,
-        team_agent,
-        risks_agent,
-        pm_agent,
-        conclusion_agent,
-        baseball_coach_agent
-    ],
-    messages=[],
-    max_round=30
-)
-
-manager = GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
-
 def run_autogen_test():
     print("🚀 Starting AutoGen dynamic multi-agent orchestration test...\n")
-
-    # Start the test and measure time
-    start = time.time()
     
-    initial_message = {"content": USER_GOAL, "role": "user", "name": user_proxy.name}
-    messages = [initial_message]
-    final_plan = ""
-
-    # Step-by-step chat: break when COOAgent outputs the final plan
-    for i in range(groupchat.max_round):
-        manager.run_chat(messages=messages, sender=user_proxy, config=groupchat)
-        # Check for final COOAgent message
-        for m in reversed(groupchat.messages):
-            content_lower = m["content"].lower()
-            if m["name"] == "COOAgent" and "rationale" in content_lower and ("operational plan" in content_lower or "business plan" in content_lower) and "here is the final" in content_lower:
-                final_plan = m["content"]
-                print(f"[DEBUG] Found final plan message, length: {len(final_plan)}")
-                break
-        if final_plan:
-            break
+    # Config for OpenAI (gpt-4)
+    config_list = [{
+        'model': 'gpt-4o',
+        'api_key': os.getenv('OPENAI_API_KEY')
+    }]
     
-    end = time.time()
-    duration = round(end - start, 2)
+    # --- Subclass for message windowing ---
+    class WindowedAssistantAgent(AssistantAgent):
+        def __init__(self, *args, max_history=12, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.max_history = max_history
 
-    # More robust extraction of final plan if the exact matching failed
-    if not final_plan:
-        print("[DEBUG] No exact matching final plan found. Trying alternative extraction methods...")
-        
-        # Try to find any substantial COOAgent message
-        coo_messages = [m for m in groupchat.messages if m["name"] == "COOAgent"]
-        if coo_messages:
-            for m in reversed(coo_messages):
-                if len(m["content"]) > 500:  # A substantial message
-                    final_plan = m["content"]
-                    print(f"[DEBUG] Found long COOAgent message, length: {len(final_plan)}")
-                    break
+        def generate_reply(self, messages=None, sender=None):
+            if messages is not None and len(messages) > self.max_history:
+                messages = messages[-self.max_history:]
+            return super().generate_reply(messages=messages, sender=sender)
     
-    # Section agent definition
+    # Create expert assistant agents
+    research_agent = WindowedAssistantAgent(
+        name="ExecutiveSummaryAgent",
+        system_message=SYSTEM_PROMPTS["executive_summary"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    market_analysis_agent = WindowedAssistantAgent(
+        name="MarketAnalysisAgent",
+        system_message=SYSTEM_PROMPTS["market_analysis"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    product_agent = WindowedAssistantAgent(
+        name="ProductStrategyAgent",
+        system_message=SYSTEM_PROMPTS["product_strategy"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    go_to_market_agent = WindowedAssistantAgent(
+        name="GoToMarketAgent",
+        system_message=SYSTEM_PROMPTS["go_to_market"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    financial_agent = WindowedAssistantAgent(
+        name="FinancialAgent",
+        system_message=SYSTEM_PROMPTS["financial"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    team_agent = WindowedAssistantAgent(
+        name="TeamAgent",
+        system_message=SYSTEM_PROMPTS["team_roles"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    risks_agent = WindowedAssistantAgent(
+        name="RisksAgent",
+        system_message=SYSTEM_PROMPTS["risks"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    pm_agent = WindowedAssistantAgent(
+        name="TimelineAgent",
+        system_message=SYSTEM_PROMPTS["timeline"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    conclusion_agent = WindowedAssistantAgent(
+        name="ConclusionAgent",
+        system_message=SYSTEM_PROMPTS["conclusion"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    baseball_coach_agent = WindowedAssistantAgent(
+        name="BaseballCoachAgent",
+        system_message=SYSTEM_PROMPTS["baseball_coach"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    # Orchestrator agent
+    orchestrator = WindowedAssistantAgent(
+        name="COOAgent",
+        system_message=SYSTEM_PROMPTS["orchestrator"],
+        llm_config={"config_list": config_list},
+        max_history=12
+    )
+
+    # User Proxy Agent (simulates the user)
+    user_proxy = UserProxyAgent(
+        name="UserProxy",
+        human_input_mode="NEVER",
+        code_execution_config=False
+    )
+    
+    # Define section agent names for use in analysis
     section_agent_names = [
         "ExecutiveSummaryAgent",
         "MarketAnalysisAgent",
@@ -188,49 +130,106 @@ def run_autogen_test():
         "BaseballCoachAgent"
     ]
     
-    # Analyze agent usage and irrelevant agent filtering
-    print("\n[ANALYSIS] Agent Selection Behavior:")
-    section_agent_counts = {}
-    for agent_name in section_agent_names:
-        count = sum(1 for m in groupchat.messages if m["name"] == agent_name)
-        section_agent_counts[agent_name] = count
-        print(f"- {agent_name}: {count} messages")
-
-    # Special focus on BaseballCoachAgent
-    baseball_messages = [m for m in groupchat.messages if m["name"] == "BaseballCoachAgent"]
-    if baseball_messages:
-        print(f"[FINDING] BaseballCoachAgent was used despite being irrelevant ({len(baseball_messages)} messages)")
-        print(f"First baseball message: {baseball_messages[0]['content'][:100]}...")
-    else:
-        print("[FINDING] BaseballCoachAgent was correctly filtered out")
+    # === Start the conversation ===
     
-    # Count messages from section agents as agent turns
-    agent_turns = sum(1 for m in groupchat.messages if m["name"] in section_agent_names)
+    # Start timing
+    start = time.time()
     
-    # If still no final plan, try to assemble one from section messages
+    # Create new group chat for this run
+    print("Creating group chat...")
+    agents = [
+        user_proxy,
+        orchestrator,
+        research_agent,
+        market_analysis_agent,
+        product_agent,
+        go_to_market_agent,
+        financial_agent,
+        team_agent,
+        risks_agent,
+        pm_agent,
+        conclusion_agent,
+        baseball_coach_agent
+    ]
+    
+    # Create the group chat with a clean message history
+    gc = GroupChat(
+        agents=agents,
+        messages=[],
+        max_round=30
+    )
+    
+    # Create the manager with the group chat
+    manager = GroupChatManager(groupchat=gc, llm_config={"config_list": config_list})
+    
+    # Initiate conversation with user goal
+    print("Starting conversation...")
+    message = {"content": USER_GOAL, "role": "user", "name": "UserProxy"}
+    user_proxy.initiate_chat(manager, message=message)
+    
+    # End timing
+    end = time.time()
+    duration = round(end - start, 2)
+    
+    # Access the messages from the group chat
+    messages = gc.messages
+    print(f"Conversation completed with {len(messages)} total messages in {duration} seconds")
+    
+    # === Extract business plan ===
+    # Try multiple approaches to extract the final plan
+    final_plan = None
+    
+    # 1. Look for the final message from COOAgent containing "final business plan"
+    coo_messages = [m for m in messages if m["name"] == "COOAgent"]
+    print(f"Found {len(coo_messages)} messages from COOAgent")
+    
+    for m in reversed(coo_messages):
+        content = m["content"].lower()
+        if "here is the final" in content and len(m["content"]) > 500:
+            final_plan = m["content"]
+            print(f"Found final plan with marker phrase, length: {len(final_plan)}")
+            break
+    
+    # 2. If no message with marker found, use the longest COOAgent message
     if not final_plan:
-        print("[DEBUG] No COOAgent final plan found. Attempting to assemble from section agents...")
-        section_contents = {}
+        print("No message with marker phrase found. Looking for longest message...")
+        longest_message = ""
+        for m in coo_messages:
+            if len(m["content"]) > len(longest_message):
+                longest_message = m["content"]
+                
+        if len(longest_message) > 500:  # Only use if substantial
+            final_plan = longest_message
+            print(f"Using longest COOAgent message as plan, length: {len(final_plan)}")
+    
+    # 3. If still no plan, reconstruct from section agent outputs
+    if not final_plan:
+        print("Reconstructing from section agent messages...")
+        section_outputs = {}
         
-        # Extract content from each section agent
-        for m in groupchat.messages:
-            if m["name"] in section_agent_names and len(m["content"]) > 50 and m["name"] != "BaseballCoachAgent":
-                section_contents[m["name"]] = m["content"]
+        # Get the latest message from each agent
+        for name in section_agent_names:
+            if name != "BaseballCoachAgent":
+                agent_messages = [m for m in messages if m["name"] == name]
+                if agent_messages:
+                    section_outputs[name] = agent_messages[-1]["content"]
         
-        # If we found section content, combine it
-        if section_contents:
-            # Add a rationale header
-            assembled_plan = "# AI Productivity App Business Plan\n\n"
-            assembled_plan += "## Rationale\n\nThis business plan was created by coordinating expert agents for different sections. "
+        # Assemble the plan if we have section outputs
+        if section_outputs:
+            # Create a header and rationale
+            parts = ["# AI Productivity App Business Plan\n\n"]
+            parts.append("## Rationale\n\n")
+            parts.append("This business plan combines insights from specialized agents. ")
             
-            # Note about BaseballCoachAgent
+            # Add BaseballCoach analysis
+            baseball_messages = [m for m in messages if m["name"] == "BaseballCoachAgent"]
             if baseball_messages:
-                assembled_plan += "The BaseballCoachAgent was incorrectly used despite being irrelevant to the business task.\n\n"
+                parts.append("The BaseballCoachAgent was used despite being irrelevant to this business task.\n\n")
             else:
-                assembled_plan += "The BaseballCoachAgent was correctly identified as irrelevant and not used.\n\n"
+                parts.append("The BaseballCoachAgent was correctly identified as irrelevant and not used.\n\n")
             
-            # Add section contents in a logical order
-            for agent_name in [
+            # Add sections in logical order
+            section_order = [
                 "ExecutiveSummaryAgent",
                 "MarketAnalysisAgent",
                 "ProductStrategyAgent",
@@ -240,72 +239,81 @@ def run_autogen_test():
                 "RisksAgent",
                 "TimelineAgent",
                 "ConclusionAgent"
-            ]:
-                if agent_name in section_contents:
-                    assembled_plan += section_contents[agent_name] + "\n\n"
+            ]
             
-            final_plan = assembled_plan
-            print(f"[DEBUG] Assembled plan from sections, total length: {len(final_plan)}")
-
-    # Save results and output (Bedrock scoring removed)
-    os.makedirs("results", exist_ok=True)
-    try:
-        output_file = "results/b2_autogen_dynamic_orchestration.md"
-        print(f"[DEBUG] Writing to: {output_file}")
+            for name in section_order:
+                if name in section_outputs:
+                    parts.append(section_outputs[name] + "\n\n")
+            
+            final_plan = "".join(parts)
+            print(f"Reconstructed plan from sections, length: {len(final_plan)}")
+    
+    # 4. Last resort: create minimal plan
+    if not final_plan:
+        print("WARNING: Could not extract plan. Creating minimal plan.")
+        final_plan = "# AI Productivity App Business Plan (Incomplete)\n\n"
+        final_plan += "## Note\n\nUnable to extract complete business plan content from agent conversation.\n\n"
         
-        with open(output_file, "w") as f:
-            timestamp = datetime.now().isoformat()
-            f.write(f"Generated: {timestamp}\n# AutoGen Dynamic Orchestration Output\n\n")
+        if coo_messages:
+            final_plan += "## Partial Content from COO Agent\n\n"
+            final_plan += coo_messages[-1]["content"]
+    
+    # === Analyze and report ===
+    # Count agent turns
+    agent_turns = sum(1 for m in messages if m["name"] in section_agent_names)
+    print(f"Total agent turns: {agent_turns}")
+    
+    # Check if BaseballCoachAgent was used
+    baseball_messages = [m for m in messages if m["name"] == "BaseballCoachAgent"]
+    if baseball_messages:
+        print(f"[FINDING] BaseballCoachAgent was used despite being irrelevant ({len(baseball_messages)} messages)")
+        print(f"First baseball message: {baseball_messages[0]['content'][:100]}...")
+    else:
+        print("[FINDING] BaseballCoachAgent was correctly filtered out")
+    
+    # === Save results ===
+    # Create directory if it doesn't exist
+    os.makedirs("results", exist_ok=True)
+    output_file = os.path.join("results", "b2_autogen_dynamic_orchestration.md")
+    
+    try:
+        print(f"Writing output to {output_file}...")
+        with open(output_file, "w", encoding="utf-8") as f:
+            # Write header
+            f.write(f"Generated: {datetime.now().isoformat()}\n")
+            f.write("# AutoGen Dynamic Orchestration Output\n\n")
             
-            # Add framework behavior analysis
+            # Framework analysis
             f.write("## Framework Behavior Analysis\n\n")
             
-            # Document agent selection behavior
+            # Agent selection
             f.write("### Agent Selection:\n")
-            for agent_name in section_agent_names:
-                count = sum(1 for m in groupchat.messages if m["name"] == agent_name)
-                f.write(f"- **{agent_name}**: {count} messages\n")
+            for name in section_agent_names:
+                count = sum(1 for m in messages if m["name"] == name)
+                f.write(f"- **{name}**: {count} messages\n")
             
-            # Highlight irrelevant agent handling
+            # Baseball coach finding
             if baseball_messages:
-                f.write(f"\n**FINDING**: BaseballCoachAgent was incorrectly used despite being irrelevant to the business task. The framework did not properly filter irrelevant agents.\n\n")
+                f.write("\n**FINDING**: BaseballCoachAgent was incorrectly used despite being irrelevant to the business task.\n\n")
                 f.write(f"BaseballCoach contribution: \n```\n{baseball_messages[0]['content'][:300]}...\n```\n\n")
             else:
-                f.write(f"\n**FINDING**: BaseballCoachAgent was correctly identified as irrelevant and filtered out.\n\n")
+                f.write("\n**FINDING**: BaseballCoachAgent was correctly identified as irrelevant and filtered out.\n\n")
             
+            # Business plan content
             f.write("## Business Plan Content\n\n")
+            f.write(final_plan)
             
-            # Add the actual business plan content
-            if final_plan:
-                f.write(final_plan)
-            else:
-                f.write("[WARNING] No comprehensive business plan was generated.\n\n")
-                
-                # Try to recover by logging the last COOAgent message
-                for m in reversed(groupchat.messages):
-                    if m["name"] == "COOAgent":
-                        f.write(f"Last COOAgent message:\n\n{m['content']}")
-                        break
-            
-            # Write standard metadata
+            # Metadata
             f.write(f"\n\n**Time to complete:** {duration} seconds\n")
             f.write(f"\n**Agent turns:** {agent_turns}\n")
-        print(f"[DEBUG] Successfully wrote output to {output_file}")
+        
+        print(f"✅ Output file written successfully")
     except Exception as e:
-        print(f"[ERROR] Failed to write output file: {str(e)}")
-        # Try to write to a different location as fallback
-        try:
-            with open("autogen_output_fallback.txt", "w") as f:
-                f.write(f"Error with original file: {str(e)}\n\n")
-                f.write(f"Final plan length: {len(final_plan) if final_plan else 0}\n\n")
-                if final_plan:
-                    f.write(final_plan)
-        except Exception as inner_e:
-            print(f"[ERROR] Even fallback file writing failed: {str(inner_e)}")
+        print(f"❌ Error writing output file: {str(e)}")
     
-    # Return values for the comparison script
-    # Save results (Bedrock scoring removed)
+    # Use common save function
     save_results("autogen", final_plan, duration, agent_turns, {})
+    
     return final_plan, duration, agent_turns
 
 if __name__ == "__main__":
