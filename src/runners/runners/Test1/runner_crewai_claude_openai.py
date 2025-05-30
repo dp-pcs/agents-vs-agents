@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from frameworks.crewai_educator import run_crewai_educator_task
+from src.frameworks.crewai_educator import run_crewai_educator_task
 
 load_dotenv()
 
@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 from anthropic import Anthropic
-from frameworks.crewai_educator import run_crewai_educator_task
+from src.frameworks.crewai_educator import run_crewai_educator_task
 import time
 start = time.time()
 # Step 1: CrewAI generates plan using Claude

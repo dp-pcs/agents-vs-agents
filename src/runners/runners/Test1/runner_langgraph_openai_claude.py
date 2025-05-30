@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 from anthropic import Anthropic
-from frameworks.langgraph_educator import run_langgraph_educator_task
+from src.frameworks.langgraph_educator import run_langgraph_educator_task
 import time
 
 load_dotenv()

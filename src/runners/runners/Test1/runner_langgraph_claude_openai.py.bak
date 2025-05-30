@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from src.frameworks.langgraph_educator import run_langgraph_educator_task
+from frameworks.langgraph_educator import run_langgraph_educator_task
 
 load_dotenv()
 

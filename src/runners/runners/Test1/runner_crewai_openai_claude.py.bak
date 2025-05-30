@@ -4,17 +4,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 from anthropic import Anthropic
-from src.frameworks.autogen_educator import run_autogen_educator_task
+from frameworks.crewai_educator import run_crewai_educator_task
 import time
 
 load_dotenv()
 
 start = time.time()
-# Step 1: Generate plan with AutoGen (OpenAI)
-print("📚 AutoGen generating with OpenAI...")
-plan_output = run_autogen_educator_task(llm_model="gpt-4")
+# Step 1: CrewAI generates plan using OpenAI
+print("📚 CrewAI generating with OpenAI...")
+plan_output = run_crewai_educator_task()
 
-# Step 2: Score with Claude
+# Step 2: Claude evaluates
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 from runners.prompt_utils import load_prompt
 
@@ -27,16 +27,21 @@ claude_response = anthropic_client.messages.create(
     temperature=0.3,
     messages=[{"role": "user", "content": claude_prompt}]
 )
+
 evaluation_md = claude_response.content[0].text
 
 # Save result
 os.makedirs("results", exist_ok=True)
-with open("results/autogen_openai_claude.md", "w") as f:
-    f.write("## AutoGen with OpenAI Output\n\n")
+with open("results/crewai_openai_claude.md", "w") as f:
+    f.write("## CrewAI with OpenAI Output\n\n")
     f.write(plan_output)
     f.write("\n\n---\n\n")
     f.write("## Claude Evaluation\n\n")
     f.write(evaluation_md)
-    f.write(f"\n\n**Time to complete:** {time.time() - start:.2f} seconds\n")
 
-print(f"\u2705 Saved to results/autogen_openai_claude.md\n⏱️ Duration: {time.time() - start:.2f} seconds")
+end = time.time()
+duration = end - start
+with open("results/crewai_openai_claude.md", "a") as f:
+    f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
+print("✅ Saved to results/crewai_openai_claude.md")
+print(f"⏱️ Duration: {duration:.2f} seconds")

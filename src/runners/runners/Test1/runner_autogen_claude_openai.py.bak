@@ -1,14 +1,14 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from src.frameworks.autogen_educator import run_autogen_educator_task
+from frameworks.autogen_educator import run_autogen_educator_task
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from src.frameworks.autogen_educator import run_autogen_educator_task
+from frameworks.autogen_educator import run_autogen_educator_task
 import time
 
 load_dotenv()
