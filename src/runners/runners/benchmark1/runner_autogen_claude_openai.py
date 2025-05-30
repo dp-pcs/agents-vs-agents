@@ -34,7 +34,12 @@ evaluation_md = openai_llm.invoke(evaluation_prompt)
 
 # Save result
 os.makedirs("results", exist_ok=True)
-with open("results/autogen_claude_openai.md", "w") as f:
+from datetime import datetime
+output_dir = "results/benchmark1"
+os.makedirs(output_dir, exist_ok=True)
+dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_file = os.path.join(output_dir, f"b1_autogen_claude_openai_{dt_str}.md")
+with open(output_file, "w") as f:
     f.write("## AutoGen with Claude Output\n\n")
     f.write(plan_output)
     f.write("\n\n---\n\n")
@@ -42,4 +47,4 @@ with open("results/autogen_claude_openai.md", "w") as f:
     f.write(evaluation_md)
     f.write(f"\n\n**Time to complete:** {time.time() - start:.2f} seconds\n")
 
-print(f"\u2705 Saved to results/autogen_claude_openai.md\n⏱️ Duration: {time.time() - start:.2f} seconds")
+print(f"\u2705 Saved to {output_file}\n\u23f1\ufe0f Duration: {time.time() - start:.2f} seconds")

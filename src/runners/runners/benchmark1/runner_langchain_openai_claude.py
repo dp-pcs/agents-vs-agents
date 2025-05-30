@@ -47,7 +47,12 @@ evaluation_md = claude_response.content[0].text
 # === Step 3: Save the output ===
 
 os.makedirs("results", exist_ok=True)
-with open("results/langchain_openai_claude.md", "w") as f:
+from datetime import datetime
+output_dir = "results/benchmark1"
+os.makedirs(output_dir, exist_ok=True)
+dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_file = os.path.join(output_dir, f"b1_langchain_openai_claude_{dt_str}.md")
+with open(output_file, "w") as f:
     f.write("## LangChain with OpenAI Output\n\n")
     f.write(str(getattr(plan_output, 'content', plan_output)))
     f.write("\n\n---\n\n")
@@ -57,6 +62,6 @@ with open("results/langchain_openai_claude.md", "w") as f:
 end = time.time()
 duration = end - start
 
-with open("results/langchain_openai_claude.md", "a") as f:
+with open(output_file, "a") as f:
     f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
-print(f" Saved to results/langchain_openai_claude.md\n Duration: {duration:.2f} seconds")
+print(f"\u2705 Saved to {output_file}\n\u23f1\ufe0f Duration: {duration:.2f} seconds")

@@ -443,6 +443,12 @@ if __name__ == "__main__":
         else:
             f.write(f"\n**FINDING**: BaseballCoachAgent was correctly identified as irrelevant and filtered out.\n\n")
         
+        # --- Output file metadata ---
+        f.write("## Output File Metadata\n\n")
+        f.write(f"**Filename:** {os.path.basename(output_file)}\n\n")
+        f.write(f"**Path:** {output_file}\n\n")
+        f.write(f"**Timestamp:** {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
         f.write("## Business Plan Content\n\n")
         
         # Write the business plan content

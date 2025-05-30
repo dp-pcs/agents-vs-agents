@@ -37,11 +37,16 @@ evaluation_md = openai_response.choices[0].message.content
 os.makedirs("results", exist_ok=True)
 end = time.time()
 duration = end - start
-with open("results/crewai_claude_openai.md", "w") as f:
+from datetime import datetime
+output_dir = "results/benchmark1"
+os.makedirs(output_dir, exist_ok=True)
+dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_file = os.path.join(output_dir, f"b1_crewai_claude_openai_{dt_str}.md")
+with open(output_file, "w") as f:
     f.write("## CrewAI with Claude Output\n\n")
     f.write(str(plan_output))
     f.write("\n\n---\n\n")
     f.write("## OpenAI Evaluation\n\n")
     f.write(str(evaluation_md))
     f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
-print(f"⏱️ Duration: {duration:.2f} seconds")
+print(f"\u2705 Saved to {output_file}\n\u23f1\ufe0f Duration: {duration:.2f} seconds")

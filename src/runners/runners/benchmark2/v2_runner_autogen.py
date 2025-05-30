@@ -273,8 +273,11 @@ def run_autogen_test():
     
     # === Save results ===
     # Create directory if it doesn't exist
-    os.makedirs("results", exist_ok=True)
-    output_file = os.path.join("results", "b2_autogen_dynamic_orchestration.md")
+    from datetime import datetime
+    output_dir = "results/benchmark2"
+    os.makedirs(output_dir, exist_ok=True)
+    dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_file = os.path.join(output_dir, f"autogen_dynamic_orchestration_{dt_str}.md")
     
     try:
         print(f"Writing output to {output_file}...")

@@ -181,8 +181,10 @@ def run_langgraph_test():
     print(f"BaseballCoachAgent handling: {baseball_handling}")
     
     # Save a custom results file with framework behavior analysis
-    os.makedirs("results", exist_ok=True)
-    output_file = os.path.join("results", "b2_langgraph_dynamic_orchestration.md")
+    output_dir = "results/benchmark2"
+    os.makedirs(output_dir, exist_ok=True)
+    dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_file = os.path.join(output_dir, f"langgraph_dynamic_orchestration_{dt_str}.md")
     
     try:
         print(f"Writing LangGraph output to {output_file}...")

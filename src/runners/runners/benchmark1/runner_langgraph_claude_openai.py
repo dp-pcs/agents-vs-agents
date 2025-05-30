@@ -32,7 +32,12 @@ evaluation_md = openai_response.choices[0].message.content
 
 # Save result
 os.makedirs("results", exist_ok=True)
-with open("results/langgraph_claude_openai.md", "w") as f:
+from datetime import datetime
+output_dir = "results/benchmark1"
+os.makedirs(output_dir, exist_ok=True)
+dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_file = os.path.join(output_dir, f"b1_langgraph_claude_openai_{dt_str}.md")
+with open(output_file, "w") as f:
     f.write("## LangGraph with Claude Output\n\n")
     f.write(str(plan_output))
     f.write("\n\n---\n\n")
@@ -40,6 +45,6 @@ with open("results/langgraph_claude_openai.md", "w") as f:
     f.write(str(evaluation_md))
 end = time.time()
 duration = end - start
-with open("results/langgraph_claude_openai.md", "a") as f:
+with open(output_file, "a") as f:
     f.write(f"\n\n**Time to complete:** {duration:.2f} seconds\n")
-print(f"\u2705 Saved to results/langgraph_claude_openai.md\n\u2705 Duration: {duration:.2f} seconds")
+print(f"\u2705 Saved to {output_file}\n\u2705 Duration: {duration:.2f} seconds")
