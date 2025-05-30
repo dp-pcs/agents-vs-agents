@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import re
+import requests
 from glob import glob
 from datetime import datetime
 
@@ -375,15 +376,82 @@ def score_with_bedrock(plan_md, model_id):
 
 def normalize_outputs():
     """Normalize all framework outputs to standard format"""
-    import subprocess
-    try:
-        print("\nRunning normalization script...")
-        subprocess.run(["python", "normalize.py"], check=True)
-        print("✅ Normalization complete")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Normalization failed: {e}")
+    print("\nNormalizing framework outputs...")
+    
+    # Create normalized directory
+    os.makedirs(NORMALIZED_DIR, exist_ok=True)
+    
+    # Get list of files to normalize
+    input_files = glob(os.path.join(RESULTS_DIR, "b2_*_dynamic_orchestration.md"))
+    if not input_files:
+        print("❌ No files found to normalize")
         return False
+    
+    print(f"Found {len(input_files)} files to normalize")
+    
+    for input_path in input_files:
+        try:
+            filename = os.path.basename(input_path)
+            output_path = os.path.join(NORMALIZED_DIR, f"normalized_{filename}")
+            
+            # Extract framework name for specific processing
+            framework = re.search(r'b2_(\w+)_dynamic', filename).group(1)
+            print(f"  Normalizing {framework} output...")
+            
+            with open(input_path, 'r') as f:
+                content = f.read()
+            
+            # Remove timestamp line and other metadata
+            content = re.sub(r'^Generated:.*?\n', '', content)
+            
+            # Remove time tracking info at the end
+            content = re.sub(r'\n\n\*\*Time to complete.*', '', content)
+            content = re.sub(r'\n\n\*\*Agent turns.*', '', content)
+            
+            # Framework-specific processing
+            if framework == "autogen":
+                # Clean up autogen specific patterns
+                content = re.sub(r'<\|.*?\|>', '', content)  # Remove marker tags
+                content = re.sub(r'$$MESSAGE.*?\n', '', content)  # Remove message headers
+                
+                # Try to extract just the final business plan
+                plan_match = re.search(r'(?:# Business Plan for|# Final Business Plan).*?(?=\Z)', content, re.DOTALL)
+                if plan_match:
+                    content = plan_match.group(0).strip()
+                
+            elif framework == "crewai":
+                # Clean up crewai formatting
+                content = re.sub(r'Task: .*?\n', '', content)
+                content = re.sub(r'Result: ', '', content)
+                
+                # Remove extra crew-specific info
+                content = re.sub(r'\nCredibility:.*?\n', '\n', content)
+                
+            elif framework == "langgraph":
+                # Make sure we extract just the business plan
+                plan_match = re.search(r'(?:# Business Plan|## Business Plan).*?(?=\Z)', content, re.DOTALL)
+                if plan_match:
+                    content = plan_match.group(0).strip()
+            
+            # Common cleaning
+            # Ensure proper markdown headers
+            content = re.sub(r'^(?!#)(.+?):\s*\$', r'## \1', content, flags=re.MULTILINE)  # Convert "Header:" to "## Header"
+            
+            # Standardize main title
+            if not content.startswith("# Business Plan"):
+                content = re.sub(r'^#+ .*?(?:Business Plan|Plan for).*\$', '# Business Plan for SaaSy Startup', content, flags=re.MULTILINE | re.IGNORECASE)
+            
+            # Write normalized content
+            with open(output_path, 'w') as f:
+                f.write(content)
+                
+            print(f"  ✅ Normalized {framework} - output saved to {output_path}")
+            
+        except Exception as e:
+            print(f"  ❌ Error normalizing {input_path}: {str(e)}")
+    
+    print("✅ Normalization complete")
+    return True
 
 def evaluate_outputs(use_bedrock=False):
     """Score normalized outputs with multiple models"""
