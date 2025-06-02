@@ -1,4 +1,5 @@
 import os
+import matplotlib.pyplot as plt
 import sys
 import time
 import json
@@ -46,12 +47,19 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 ANTHROPIC_MODEL = 'claude-3-sonnet-20240229'
 
 # Bedrock config for multi-model scoring
+
 BEDROCK_ENABLED = os.getenv('AWS_ACCESS_KEY_ID') is not None
-BEDROCK_MODELS = [
-    ("anthropic.claude-3-sonnet-20240229-v1:0", "Claude 3 Sonnet"),
-    ("anthropic.claude-3-haiku-20240307-v1:0", "Claude 3 Haiku"),
-    ("meta.llama3-8b-instruct-v1:0", "Llama 3 8B"),
-]
+BEDROCK_MODEL_REGISTRY = {
+    "claude_opus": ("anthropic.claude-3-opus-20240229-v1:0", "Claude 3 Opus"),
+    "claude_sonnet": ("anthropic.claude-3-sonnet-20240229-v1:0", "Claude 3 Sonnet"),
+    "claude_haiku": ("anthropic.claude-3-haiku-20240307-v1:0", "Claude 3 Haiku"),
+    "titan_express": ("amazon.titan-text-express-v1", "Titan Text Express"),
+    "titan_lite": ("amazon.titan-text-lite-v1", "Titan Text Lite"),
+    "mistral_7b": ("mistral.mistral-7b-instruct-v0:0", "Mistral 7B Instruct"),
+    "deepseek_coder": ("deepseek.deepseek-coder-v1:0", "DeepSeek Coder"),
+}
+
+BEDROCK_MODELS = list(BEDROCK_MODEL_REGISTRY.values())
 
 SCORING_PROMPT = '''
 You are an expert business plan evaluator. Given the following business plan, score it on a scale of 1–5 for each category below.
@@ -124,33 +132,7 @@ def run_all_framework_tests():
         "messages": autogen_messages  # Store full message history for analysis
     }
     
-    print("\n\n=== CREWAI TEST ===\n")
-    crewai_output, crewai_duration, crewai_turns = run_crewai_test()
-    # Fix for CrewAI agent turns - count major sections as a proxy for agent contributions
-    crewai_section_count = len(re.findall(r'##? [A-Za-z\s&]+\n', str(crewai_output)))
-    if crewai_turns == 0 and crewai_section_count > 0:
-        crewai_turns = crewai_section_count
-        print(f"[INFO] CrewAI agent turns updated from 0 to {crewai_turns} based on section count")
-    
-    results["crewai"] = {
-        "duration": crewai_duration,
-        "agent_turns": crewai_turns,
-        "output_length": len(crewai_output) if crewai_output else 0,
-        "output": crewai_output  # Store the actual output for analysis
-    }
-    
-    print("\n\n=== LANGGRAPH TEST ===\n")
-    langgraph_output, langgraph_duration, langgraph_turns = run_langgraph_test()
-    results["langgraph"] = {
-        "duration": langgraph_duration,
-        "agent_turns": langgraph_turns,
-        "output_length": len(langgraph_output) if langgraph_output else 0,
-        "output": langgraph_output  # Store the actual output for analysis
-    }
-    
-    # Analyze BaseballCoachAgent handling
-    
-    # For AutoGen - Use detailed BaseballCoachAgent message analysis from full message history
+    # Analyze BaseballCoachAgent handling for AutoGen
     autogen_baseball_messages = [m for m in autogen_messages if m.get("name") == "BaseballCoachAgent"]
     if autogen_baseball_messages:
         results["autogen"]["filtered_irrelevant_agents"] = "No"
@@ -165,6 +147,62 @@ def run_all_framework_tests():
             "Detection method: Message-level analysis.\n"
             "BaseballCoachAgent was not used, suggesting it was filtered out."
         )
+    
+    print("\n\n=== CREWAI TEST ===\n")
+    crewai_output, crewai_duration, crewai_turns = run_crewai_test()
+    # Fix for CrewAI agent turns - count major sections as a proxy for agent contributions
+    crewai_section_count = len(re.findall(r'##? [A-Za-z\s\u0026]+\n', str(crewai_output)))
+    if crewai_turns == 0 and crewai_section_count > 0:
+        crewai_turns = crewai_section_count
+        print(f"[INFO] CrewAI agent turns updated from 0 to {crewai_turns} based on section count")
+    
+    results["crewai"] = {
+        "duration": crewai_duration,
+        "agent_turns": crewai_turns,
+        "output_length": len(crewai_output) if crewai_output else 0,
+        "output": crewai_output  # Store the actual output for analysis
+    }
+
+    # Analyze BaseballCoachAgent handling for CrewAI
+    crewai_baseball_filtered = True
+    if "Baseball Coach" in str(crewai_output):
+        baseball_context = re.search(r'([^.]*?Baseball Coach[^.]*\.)', str(crewai_output), re.IGNORECASE)
+        if baseball_context:
+            context = baseball_context.group(1).lower()
+            negative_phrases = ["was used", "contributed", "provided input", "included"]
+            positive_phrases = ["not used", "not involve", "irrelevant", "excluded", "did not use", "was not involved"]
+            if any(phrase in context for phrase in negative_phrases) and not any(phrase in context for phrase in positive_phrases):
+                crewai_baseball_filtered = False
+    results["crewai"]["filtered_irrelevant_agents"] = "Yes" if crewai_baseball_filtered else "No"
+    results["crewai"]["agent_filtering_details"] = (
+        "Detection method: Context-aware text analysis.\n"
+        f"BaseballCoachAgent {'was mentioned but in context of being excluded' if crewai_baseball_filtered else 'appears to have been used'} in the output."
+    )
+
+    print("\n\n=== LANGGRAPH TEST ===\n")
+    langgraph_output, langgraph_duration, langgraph_turns = run_langgraph_test()
+    results["langgraph"] = {
+        "duration": langgraph_duration,
+        "agent_turns": langgraph_turns,
+        "output_length": len(langgraph_output) if langgraph_output else 0,
+        "output": langgraph_output  # Store the actual output for analysis
+    }
+
+    # Analyze BaseballCoachAgent handling for LangGraph
+    langgraph_baseball_filtered = True
+    if "BaseballCoachAgent" in str(langgraph_output):
+        positive_phrases = ["chose not to involve", "not relevant", "irrelevant", "not used", "did not involve", "excluded"]
+        baseball_context = re.search(r'([^.]*?BaseballCoachAgent[^.]*\.)', str(langgraph_output), re.IGNORECASE)
+        if baseball_context:
+            context = baseball_context.group(1).lower()
+            if not any(phrase in context for phrase in positive_phrases):
+                langgraph_baseball_filtered = False
+    results["langgraph"]["filtered_irrelevant_agents"] = "Yes" if langgraph_baseball_filtered else "No"
+    results["langgraph"]["agent_filtering_details"] = (
+        "Detection method: Context-aware text analysis.\n"
+        f"BaseballCoachAgent {'was mentioned but in context of being excluded' if langgraph_baseball_filtered else 'appears to have been used'} in the output."
+    )
+
     
     # For CrewAI - Context-aware check for baseball mentions
     crewai_baseball_filtered = True
@@ -219,8 +257,11 @@ def run_all_framework_tests():
 
 # === SCORING ===
 
-def score_with_anthropic(plan_md):
-    """Score plan using Anthropic Claude API"""
+def score_with_anthropic(plan_md, max_retries=3):
+    """Score plan using Anthropic Claude API with retry logic for network errors."""
+    import httpx
+    from requests.exceptions import RequestException
+    import time
     # Extract any mentions of BaseballCoachAgent before truncating
     baseball_mentions = re.findall(r'(?i)baseball\s*coach\s*agent', plan_md)
     baseball_context = "BaseballCoachAgent mentioned" if baseball_mentions else "BaseballCoachAgent not mentioned"
@@ -251,53 +292,67 @@ def score_with_anthropic(plan_md):
             {"role": "user", "content": prompt}
         ]
     }
-    
-    try:
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers=HEADERS,
-            json=data,
-            timeout=60
-        )
-        response.raise_for_status()
-        content = response.json()["content"]
 
-        if isinstance(content, list):
-            text = "\n".join([block.get("text", "") for block in content])
-        else:
-            text = str(content)
-
-        # Try to extract JSON
+    last_exception = None
+    for attempt in range(max_retries):
         try:
-            start_idx = text.find('{')
-            end_idx = text.rfind('}') + 1
-            if start_idx >= 0 and end_idx > start_idx:
-                json_str = text[start_idx:end_idx]
-                j = json.loads(json_str)
+            response = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=HEADERS,
+                json=data,
+                timeout=60
+            )
+            response.raise_for_status()
+            content = response.json()["content"]
 
-                # Add our own assessment of BaseballCoachAgent handling if not provided
-                explicit_exclusion_phrases = [
-                    "not needed", "not used", "excluded", "irrelevant", "did not use", "was not involved"
-                ]
-                if any(p in plan_md.lower() for p in explicit_exclusion_phrases):
-                    j["baseball_coach_handling"] = 2
-                elif "baseball_coach_handling" not in j:
-                    if baseball_excluded:
-                        j["baseball_coach_handling"] = 2  # Explicitly excluded with explanation
-                    elif baseball_mentions:
-                        j["baseball_coach_handling"] = 1  # Mentioned but not explained
-                    else:
-                        j["baseball_coach_handling"] = 0  # Not mentioned
-
-                return j
+            if isinstance(content, list):
+                text = "\n".join([block.get("text", "") for block in content])
             else:
-                return {"error": "Could not find JSON brackets", "raw": text}
+                text = str(content)
 
+            # Try to extract JSON
+            try:
+                start_idx = text.find('{')
+                end_idx = text.rfind('}') + 1
+                if start_idx >= 0 and end_idx > start_idx:
+                    json_str = text[start_idx:end_idx]
+                    j = json.loads(json_str)
+
+                    # Add our own assessment of BaseballCoachAgent handling if not provided
+                    explicit_exclusion_phrases = [
+                        "not needed", "not used", "excluded", "irrelevant", "did not use", "was not involved"
+                    ]
+                    if any(p in plan_md.lower() for p in explicit_exclusion_phrases):
+                        j["baseball_coach_handling"] = 2
+                    elif "baseball_coach_handling" not in j:
+                        if baseball_excluded:
+                            j["baseball_coach_handling"] = 2  # Explicitly excluded with explanation
+                        elif baseball_mentions:
+                            j["baseball_coach_handling"] = 1  # Mentioned but not explained
+                        else:
+                            j["baseball_coach_handling"] = 0  # Not mentioned
+
+                    return j
+                else:
+                    return {"error": "Could not find JSON brackets", "raw": text}
+
+            except Exception as e:
+                return {"error": f"Could not parse score JSON: {str(e)}", "raw": text}
+
+        except (httpx.RemoteProtocolError, RequestException) as e:
+            last_exception = e
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                continue
+            else:
+                return {"error": f"Anthropic API connection failed after {max_retries} attempts: {str(e)}"}
         except Exception as e:
-            return {"error": f"Could not parse score JSON: {str(e)}", "raw": text}
+            return {"error": f"API request failed: {str(e)}"}
 
-    except Exception as e:
-        return {"error": f"API request failed: {str(e)}"}
+    # If all retries failed
+    return {"error": f"Anthropic API request repeatedly failed: {str(last_exception)}"}
+
+# === NORMALIZATION AND EVALUATION ===
 
 def score_with_bedrock(plan_md, model_id):
     """Score plan using AWS Bedrock models"""
@@ -313,22 +368,46 @@ def score_with_bedrock(plan_md, model_id):
         # Prepare prompt
         prompt = SCORING_PROMPT + "\n\nBusiness Plan:\n" + truncated_plan
         
-        # Format request based on model type
+        # Route Anthropic models to Anthropic API, not Bedrock
         if "anthropic" in model_id:
+            return score_with_anthropic(plan_md)
+        elif "amazon.titan" in model_id:
             body = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 1000,
-                "temperature": 0.2,
-                "messages": [{"role": "user", "content": prompt}]
+                "inputText": prompt,
+                "textGenerationConfig": {
+                    "maxTokenCount": 1000,
+                    "temperature": 0.2
+                }
             }
-        elif "meta.llama" in model_id:
+        elif "mistral.mistral-7b-instruct" in model_id:
             body = {
                 "prompt": prompt,
-                "max_gen_len": 1000,
+                "max_tokens": 1000,
+                "temperature": 0.2
+            }
+        elif "deepseek.deepseek-coder" in model_id:
+            body = {
+                "prompt": prompt,
+                "max_tokens": 1000,
                 "temperature": 0.2
             }
         else:
-            return {"error": f"Unsupported model: {model_id}"}
+            return {"error": f"Unsupported or misconfigured model: {model_id}. Please check BEDROCK_MODEL_REGISTRY or token limits."}
+        
+        # Get inference profile ARN from environment variable (robust lookup)
+        def model_id_to_env_var(model_id):
+            return "BEDROCK_INFERENCE_PROFILE_ARN_" + re.sub(r'[^A-Za-z0-9]', '_', model_id).upper()
+        env_var_name = model_id_to_env_var(model_id)
+        inference_profile_arn = os.environ.get(env_var_name)
+
+        # Only require and inject inferenceProfileArn for models that need it
+        needs_inference_profile = ("meta" in model_id)
+
+        if needs_inference_profile:
+            if inference_profile_arn:
+                body["inferenceProfileArn"] = inference_profile_arn
+            else:
+                print(f"⚠️ No inference profile ARN found for {model_id}, skipping injection.")
         
         # Make Bedrock request
         bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
@@ -341,14 +420,23 @@ def score_with_bedrock(plan_md, model_id):
         
         # Extract result
         response_body = json.loads(response["body"].read())
-        
-        if "anthropic" in model_id:
-            content = response_body.get("content", [])[0].get("text", "")
-        elif "meta.llama" in model_id:
-            content = response_body.get("generation", "")
+
+        if "amazon.titan" in model_id:
+            # Titan returns: { 'results': [ { 'outputText': ... } ] }
+            try:
+                content = response_body.get("results", [{}])[0].get("outputText", "")
+            except Exception:
+                content = str(response_body)
+        elif "mistral.mistral-7b-instruct" in model_id or "deepseek.deepseek-coder" in model_id:
+            # Mistral/DeepSeek: { 'outputs': [ { 'text': ... } ] }
+            try:
+                outputs = response_body.get("outputs", [{}])
+                content = outputs[0].get("text", "") if outputs and isinstance(outputs[0], dict) else str(response_body)
+            except Exception:
+                content = str(response_body)
         else:
             content = str(response_body)
-        
+
         # Try to extract JSON
         try:
             start_idx = content.find('{')
@@ -378,10 +466,9 @@ def score_with_bedrock(plan_md, model_id):
     except Exception as e:
         return {"error": f"Bedrock error: {str(e)}"}
 
-# === NORMALIZATION AND EVALUATION ===
-
 def score_outputs(md_paths):
     """
+{{ ... }}
     Score outputs from a provided list of markdown file paths, using the same logic as evaluate_outputs.
     Returns evaluation results for report generation.
     """
@@ -497,7 +584,8 @@ def generate_report(framework_metrics, evaluation_results):
         f.write("| Framework | Duration (s) | Agent Turns | Output Length | Message Count |\n")
         f.write("|-----------|--------------|-------------|----------------|----------------|\n")
         for framework, data in framework_metrics.items():
-            message_count = len(data.get("messages", [])) if "messages" in data else "?"
+            messages = data.get("messages", [])
+            message_count = len(messages) if isinstance(messages, list) else "?"
             f.write(f"| {framework.capitalize()} | {data['duration']} | {data['agent_turns']} | {data['output_length']} | {message_count} |\n")
         
         # Agent Selection Capabilities
@@ -551,7 +639,33 @@ def generate_report(framework_metrics, evaluation_results):
             f.write("|------|-----------|-------------|--------------|-----------|----------|\n")
             for i, (fw, scores) in enumerate(rankings, 1):
                 f.write(f"| {i} | {fw.capitalize()} | {scores['total']:.2f}/15 | {scores['completeness']:.2f}/5 | {scores['rationale_quality']:.2f}/5 | {scores['structure_quality']:.2f}/5 |\n")
-        
+
+        # Model Scores by Framework
+        f.write("\n## Model Scores by Framework\n\n")
+        f.write("| Framework | Model | Completeness | Rationale Quality | Structure Quality | Total |\n")
+        f.write("|-----------|-------|--------------|-------------------|-------------------|-------|\n")
+        # Collect per-framework per-model scores for averaging
+        framework_model_totals = {}
+        for result in evaluation_results:
+            framework = result["framework"]
+            for s in result["scores"]:
+                if "error" in s:
+                    continue
+                model = s.get("model", "?")
+                completeness = int(s.get("completeness", 0))
+                rationale = int(s.get("rationale_quality", 0))
+                structure = int(s.get("structure_quality", 0))
+                total = completeness + rationale + structure
+                f.write(f"| {framework.capitalize()} | {model} | {completeness}/5 | {rationale}/5 | {structure}/5 | {total}/15 |\n")
+                framework_model_totals.setdefault(framework, []).append(total)
+        # Final Average Score per framework
+        f.write("\n### Final Average Score by Framework (across all models)\n\n")
+        f.write("| Framework | Average Score (All Models) |\n")
+        f.write("|-----------|--------------------------|\n")
+        for framework, totals in framework_model_totals.items():
+            avg = sum(totals) / len(totals) if totals else 0
+            f.write(f"| {framework.capitalize()} | {avg:.2f}/15 |\n")
+
         # Testing Methodology
         f.write("\n## Testing Methodology\n\n")
         f.write("All frameworks were tested with:\n\n")
@@ -638,6 +752,77 @@ def generate_report(framework_metrics, evaluation_results):
                         f.write(f"```\n{baseball_context.group(0)}\n```\n\n")
         # Append date/time at the end of the report
         f.write(f"\n---\n\nReport finalized: {datetime.now().isoformat()}\n")
+    # === PLOT TRENDS ===
+    def plot_score_trends(evaluation_results):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import webbrowser
+
+        frameworks = []
+        completeness_scores = []
+        rationale_scores = []
+        structure_scores = []
+        model_counts = []
+
+        # Standard deviation lists
+        completeness_stds = []
+        rationale_stds = []
+        structure_stds = []
+
+        for result in evaluation_results:
+            framework = result["framework"]
+            valid_scores = [s for s in result["scores"] if "error" not in s]
+            if valid_scores:
+                c_scores = [int(s.get("completeness", 0)) for s in valid_scores]
+                r_scores = [int(s.get("rationale_quality", 0)) for s in valid_scores]
+                s_scores = [int(s.get("structure_quality", 0)) for s in valid_scores]
+
+                completeness_avg = np.mean(c_scores)
+                rationale_avg = np.mean(r_scores)
+                structure_avg = np.mean(s_scores)
+
+                completeness_std = np.std(c_scores)
+                rationale_std = np.std(r_scores)
+                structure_std = np.std(s_scores)
+
+                frameworks.append(framework)
+                completeness_scores.append(completeness_avg)
+                rationale_scores.append(rationale_avg)
+                structure_scores.append(structure_avg)
+
+                completeness_stds.append(completeness_std)
+                rationale_stds.append(rationale_std)
+                structure_stds.append(structure_std)
+
+                model_counts.append(len(valid_scores))
+
+        plt.figure(figsize=(10, 6))
+        x = np.arange(len(frameworks))
+        width = 0.25
+
+        plt.bar(x - width, completeness_scores, width, yerr=completeness_stds, capsize=5, label='Completeness')
+        plt.bar(x, rationale_scores, width, yerr=rationale_stds, capsize=5, label='Rationale Quality')
+        plt.bar(x + width, structure_scores, width, yerr=structure_stds, capsize=5, label='Structure Quality')
+
+        for i, count in enumerate(model_counts):
+            plt.text(i, max(completeness_scores[i], rationale_scores[i], structure_scores[i]) + 0.2,
+                     f"{count} models", ha='center', fontsize=8)
+
+        plt.xticks(x, frameworks, rotation=30)
+        plt.ylim(0, 5.5)
+        plt.title("Framework Evaluation Trends (Avg ± Std Dev)")
+        plt.xlabel("Framework")
+        plt.ylabel("Score")
+        plt.legend()
+        plt.grid(True, axis='y')
+        plt.tight_layout()
+
+        chart_path = os.path.join(RESULTS_DIR, 'score_trends.png')
+        plt.savefig(chart_path)
+        print(f"📊 Trend chart saved to: {chart_path}")
+        webbrowser.open(f"file://{chart_path}")
+
+    plot_score_trends(evaluation_results)
     print(f"\n✅ Benchmark report written to {SUMMARY_REPORT}")
 
 # === MAIN ===

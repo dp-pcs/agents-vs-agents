@@ -10,3 +10,4 @@ langchain-anthropic
 
 # For AutoGen agent framework
 pyautogen
+matplotlib

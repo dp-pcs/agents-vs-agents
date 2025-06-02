@@ -1,26 +1,23 @@
-# runner.py
-
-from frameworks.crewai_runner import run_crewai_task
-from frameworks.langgraph_runner import evaluate_output
+from frameworks.langgraph_task_runner import run_langgraph_task
+from evaluators.crewai_evaluator import evaluate_output
 import os
 
-# Define the task LangGraph wants CrewAI to do
 task_prompt = (
     "Based on statistical analysis of trends for NFL quarterbacks over the past 5 years, "
     "which 2nd year starting quarterbacks are most likely to have a successful 2025–2026 season, and why?"
 )
 
-# Run task with CrewAI
-print("🔧 Running task via CrewAI...")
-crewai_result = run_crewai_task(task_prompt)
+print("🔁 Running reverse test: LangGraph executes, CrewAI evaluates")
 
-# Evaluate result with LangGraph evaluator
-print("🧠 Evaluating CrewAI’s result with LangGraph evaluator...")
-evaluation_md = evaluate_output(task_prompt, crewai_result)
+# LangGraph executes the task
+langgraph_result = run_langgraph_task(task_prompt)
 
-# Save result
+# CrewAI evaluates the LangGraph result
+evaluation_md = evaluate_output(task_prompt, langgraph_result)
+
+# Save the evaluation result
 os.makedirs("results", exist_ok=True)
-with open("results/test1_langgraph_to_crewai.md", "w") as f:
+with open("results/test2_crewai_evaluates_langgraph.md", "w") as f:
     f.write(evaluation_md)
 
-print("✅ Evaluation complete. See results/test1_langgraph_to_crewai.md")
+print("✅ Reverse evaluation complete. See results/test2_crewai_evaluates_langgraph.md")
