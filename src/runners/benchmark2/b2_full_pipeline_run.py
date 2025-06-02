@@ -21,6 +21,7 @@ import argparse
 # Parse optional output directory argument
 parser = argparse.ArgumentParser(description='Benchmark2 Full Pipeline Run')
 parser.add_argument('output_dir', nargs='?', default=None, help='Output directory for this run')
+parser.add_argument('--score-only', action='store_true', help='Only run scoring/evaluation on existing outputs in the output_dir')
 args = parser.parse_args()
 
 if args.output_dir:
@@ -53,31 +54,37 @@ BEDROCK_MODELS = [
 ]
 
 SCORING_PROMPT = '''
-You are an expert business plan evaluator. Given the following business plan, score it on a scale of 0-3 for each category:
+You are an expert business plan evaluator. Given the following business plan, score it on a scale of 1–5 for each category below.
 
-- Completeness (Does it cover all sections and details expected in a professional business plan, including Executive Summary, Market Analysis, Product Strategy, Go-to-Market, Financial Projections, Team & Roles, Risks & Mitigation, 12-Week Rollout Timeline, Conclusion, and a rationale at the top?)
-  - 0: Missing most required sections
-  - 1: Missing several key sections or most sections lack depth
-  - 2: Contains most sections with adequate detail
-  - 3: Comprehensive with all required sections and appropriate detail
+Use the following rubric:
 
-- Rationale Quality (Does it clearly explain why certain agents were used and others were not? Does it mention the BaseballCoachAgent and explain why it was excluded? Does it explain the reasoning behind strategic decisions?)
-  - 0: No rationale provided
-  - 1: Minimal rationale with little explanation
-  - 2: Adequate rationale with some explanation of decisions
-  - 3: Excellent rationale with clear explanations for all key decisions
+- **Completeness**
+  - 1: Critically incomplete or missing most expected sections.
+  - 2: Major sections missing or present but extremely shallow.
+  - 3: Most required sections included with moderate detail.
+  - 4: All major sections present with good depth and coherence.
+  - 5: Fully complete, includes all expected content with exceptional detail and thoughtfulness.
 
-- Structure Quality (Is it well-organized, readable, and follows a standard business plan format with clear markdown sections in the required order?)
-  - 0: Poorly structured, difficult to follow
-  - 1: Basic structure but with organizational issues
-  - 2: Good structure with clear sections
-  - 3: Excellent structure with professional formatting and logical flow
+- **Rationale Quality**
+  - 1: No rationale or explanation of decisions provided.
+  - 2: Minimal or unclear rationale with vague justifications.
+  - 3: Basic reasoning provided for agent choices, but lacks clarity or depth.
+  - 4: Good explanation of agent use and exclusions, with mostly clear reasoning.
+  - 5: Excellent, well-reasoned rationale for all major decisions and exclusions, including agent choices and role justifications.
 
-For each, provide a brief explanation for the score.
+- **Structure Quality**
+  - 1: Chaotic, difficult to follow, little to no formatting.
+  - 2: Basic structure but poorly formatted or disorganized.
+  - 3: Adequate formatting and logical flow, but may lack polish.
+  - 4: Well-structured, readable, and professionally formatted.
+  - 5: Impeccably organized with consistent formatting, logical section flow, and clear markdown hierarchy.
 
-Additional considerations:
-- For Completeness: Check if there's a rationale section at the top and if it mentions which agents were used and not used
-- For Structure Quality: Check for consistent headers, logical flow between sections, and appropriate formatting
+Before assigning a score, explain briefly why you gave that score based on the content provided.
+
+Also, assess how the BaseballCoachAgent is handled:
+- 0 = Not mentioned at all
+- 1 = Mentioned but not clearly explained
+- 2 = Mentioned and explicitly excluded or explained as irrelevant
 
 Respond in the following JSON format:
 {
@@ -87,7 +94,7 @@ Respond in the following JSON format:
   "rationale_explanation": "...",
   "structure_quality": <score>,
   "structure_explanation": "...",
-  "baseball_coach_handling": <0 if not mentioned, 1 if mentioned but not explained, 2 if mentioned as excluded with explanation>
+  "baseball_coach_handling": <0, 1, or 2>
 }
 '''
 
@@ -108,12 +115,13 @@ def run_all_framework_tests():
     results = {}
     
     print("\n\n=== AUTOGEN TEST ===\n")
-    autogen_output, autogen_duration, autogen_turns = run_autogen_test()
+    autogen_output, autogen_duration, autogen_turns, autogen_messages = run_autogen_test()
     results["autogen"] = {
         "duration": autogen_duration,
         "agent_turns": autogen_turns,
         "output_length": len(autogen_output) if autogen_output else 0,
-        "output": autogen_output  # Store the actual output for analysis
+        "output": autogen_output,  # Store the actual output for analysis
+        "messages": autogen_messages  # Store full message history for analysis
     }
     
     print("\n\n=== CREWAI TEST ===\n")
@@ -142,12 +150,21 @@ def run_all_framework_tests():
     
     # Analyze BaseballCoachAgent handling
     
-    # For AutoGen - Detailed BaseballCoachAgent message analysis is not available unless run_autogen_test is refactored to return messages.
-    results["autogen"]["filtered_irrelevant_agents"] = "Unknown"
-    results["autogen"]["agent_filtering_details"] = (
-        "Detection method: Not implemented.\n"
-        "Detailed BaseballCoachAgent message analysis is unavailable in this pipeline version."
-    )
+    # For AutoGen - Use detailed BaseballCoachAgent message analysis from full message history
+    autogen_baseball_messages = [m for m in autogen_messages if m.get("name") == "BaseballCoachAgent"]
+    if autogen_baseball_messages:
+        results["autogen"]["filtered_irrelevant_agents"] = "No"
+        results["autogen"]["agent_filtering_details"] = (
+            "Detection method: Message-level analysis.\n"
+            "BaseballCoachAgent appears to have been used despite being irrelevant ("
+            f"{len(autogen_baseball_messages)} messages)."
+        )
+    else:
+        results["autogen"]["filtered_irrelevant_agents"] = "Yes"
+        results["autogen"]["agent_filtering_details"] = (
+            "Detection method: Message-level analysis.\n"
+            "BaseballCoachAgent was not used, suggesting it was filtered out."
+        )
     
     # For CrewAI - Context-aware check for baseball mentions
     crewai_baseball_filtered = True
@@ -244,12 +261,12 @@ def score_with_anthropic(plan_md):
         )
         response.raise_for_status()
         content = response.json()["content"]
-        
+
         if isinstance(content, list):
             text = "\n".join([block.get("text", "") for block in content])
         else:
             text = str(content)
-            
+
         # Try to extract JSON
         try:
             start_idx = text.find('{')
@@ -257,23 +274,28 @@ def score_with_anthropic(plan_md):
             if start_idx >= 0 and end_idx > start_idx:
                 json_str = text[start_idx:end_idx]
                 j = json.loads(json_str)
-                
+
                 # Add our own assessment of BaseballCoachAgent handling if not provided
-                if "baseball_coach_handling" not in j:
+                explicit_exclusion_phrases = [
+                    "not needed", "not used", "excluded", "irrelevant", "did not use", "was not involved"
+                ]
+                if any(p in plan_md.lower() for p in explicit_exclusion_phrases):
+                    j["baseball_coach_handling"] = 2
+                elif "baseball_coach_handling" not in j:
                     if baseball_excluded:
                         j["baseball_coach_handling"] = 2  # Explicitly excluded with explanation
                     elif baseball_mentions:
                         j["baseball_coach_handling"] = 1  # Mentioned but not explained
                     else:
                         j["baseball_coach_handling"] = 0  # Not mentioned
-                        
+
                 return j
             else:
                 return {"error": "Could not find JSON brackets", "raw": text}
-                
+
         except Exception as e:
             return {"error": f"Could not parse score JSON: {str(e)}", "raw": text}
-            
+
     except Exception as e:
         return {"error": f"API request failed: {str(e)}"}
 
@@ -358,6 +380,49 @@ def score_with_bedrock(plan_md, model_id):
 
 # === NORMALIZATION AND EVALUATION ===
 
+def score_outputs(md_paths):
+    """
+    Score outputs from a provided list of markdown file paths, using the same logic as evaluate_outputs.
+    Returns evaluation results for report generation.
+    """
+    results = []
+    for md_path in md_paths:
+        with open(md_path, 'r') as f:
+            content = f.read()
+        # Extract framework name
+        if 'normalized_b2_' in os.path.basename(md_path):
+            framework = os.path.basename(md_path).replace('normalized_b2_', '').replace('_dynamic_orchestration.md', '')
+        else:
+            framework = os.path.basename(md_path).replace('b2_', '').replace('_dynamic_orchestration.md', '')
+        print(f"Scoring: {framework} ({md_path})")
+        # Score with Anthropic Claude
+        try:
+            claude_score = score_with_anthropic(content)
+            claude_score["model"] = "claude-3-sonnet"
+            print(f"  ✅ Claude scoring complete")
+        except Exception as e:
+            claude_score = {"error": str(e), "model": "claude-3-sonnet"}
+            print(f"  ❌ Claude scoring failed: {e}")
+        scores = [claude_score]
+        # Score with Bedrock models if enabled
+        if BEDROCK_ENABLED:
+            for model_id, model_name in BEDROCK_MODELS:
+                try:
+                    print(f"  Scoring with Bedrock: {model_name}")
+                    bedrock_score = score_with_bedrock(content, model_id)
+                    bedrock_score["model"] = model_name
+                    scores.append(bedrock_score)
+                    print(f"  ✅ {model_name} scoring complete")
+                except Exception as e:
+                    print(f"  ❌ {model_name} scoring failed: {e}")
+        results.append({
+            "file": os.path.basename(md_path),
+            "framework": framework,
+            "scores": scores
+        })
+        time.sleep(1.5)  # Avoid rate limits
+    return results
+
 def normalize_outputs():
     """Normalize all framework outputs to standard format"""
     import subprocess
@@ -371,19 +436,26 @@ def normalize_outputs():
         return False
 
 def evaluate_outputs():
-    """Score normalized outputs with multiple models"""
+    """Score outputs with multiple models, using normalized files if available, else raw outputs."""
     print("\nEvaluating framework outputs...")
-    md_files = glob(os.path.join(NORMALIZED_DIR, 'normalized_*_dynamic_orchestration.md'))
+    # Prefer normalized files if they exist, else use raw output files
+    normalized_files = glob(os.path.join(NORMALIZED_DIR, 'normalized_*_dynamic_orchestration.md'))
+    if normalized_files:
+        md_files = normalized_files
+    else:
+        # Fallback to raw output files
+        md_files = glob(os.path.join(RESULTS_DIR, 'b2_*_dynamic_orchestration.md'))
     results = []
     
     for md_path in md_files:
         with open(md_path, 'r') as f:
             content = f.read()
-            
         # Extract framework name
-        framework = os.path.basename(md_path).replace('normalized_b2_', '').replace('_dynamic_orchestration.md', '')
+        if 'normalized_b2_' in os.path.basename(md_path):
+            framework = os.path.basename(md_path).replace('normalized_b2_', '').replace('_dynamic_orchestration.md', '')
+        else:
+            framework = os.path.basename(md_path).replace('b2_', '').replace('_dynamic_orchestration.md', '')
         print(f"Scoring: {framework} ({md_path})")
-        
         # Score with Anthropic Claude
         try:
             claude_score = score_with_anthropic(content)
@@ -392,9 +464,7 @@ def evaluate_outputs():
         except Exception as e:
             claude_score = {"error": str(e), "model": "claude-3-sonnet"}
             print(f"  ❌ Claude scoring failed: {e}")
-            
         scores = [claude_score]
-        
         # Score with Bedrock models if enabled
         if BEDROCK_ENABLED:
             for model_id, model_name in BEDROCK_MODELS:
@@ -406,15 +476,12 @@ def evaluate_outputs():
                     print(f"  ✅ {model_name} scoring complete")
                 except Exception as e:
                     print(f"  ❌ {model_name} scoring failed: {e}")
-        
         results.append({
             "file": os.path.basename(md_path),
             "framework": framework,
             "scores": scores
         })
-        
         time.sleep(1.5)  # Avoid rate limits
-    
     return results
 
 # === REPORT GENERATION ===
@@ -427,18 +494,17 @@ def generate_report(framework_metrics, evaluation_results):
         
         # Framework Performance Metrics
         f.write("## Performance Metrics\n\n")
-        f.write("| Framework | Duration (seconds) | Agent Turns | Output Length (chars) |\n")
-        f.write("|-----------|-------------------|-------------|----------------------|\n")
-        
+        f.write("| Framework | Duration (s) | Agent Turns | Output Length | Message Count |\n")
+        f.write("|-----------|--------------|-------------|----------------|----------------|\n")
         for framework, data in framework_metrics.items():
-            f.write(f"| {framework.capitalize()} | {data['duration']} | {data['agent_turns']} | {data['output_length']} |\n")
+            message_count = len(data.get("messages", [])) if "messages" in data else "?"
+            f.write(f"| {framework.capitalize()} | {data['duration']} | {data['agent_turns']} | {data['output_length']} | {message_count} |\n")
         
         # Agent Selection Capabilities
         f.write("\n## Agent Selection Capabilities\n\n")
-        f.write("| Framework | Filtered Irrelevant Agents | Detection Details |\n")
-        f.write("|-----------|----------------------------|-------------------|\n")
+        f.write("| Framework | Filtered Irrelevant Agents | Analysis Method |\n")
         for framework, data in framework_metrics.items():
-            f.write(f"| {framework.capitalize()} | {data['filtered_irrelevant_agents']} | {data['agent_filtering_details']} |\n")
+            f.write(f"| {framework.capitalize()} | {data.get('filtered_irrelevant_agents', '?')} | {data.get('agent_filtering_details', '?')} |\n")
         
         # Quality Assessment
         f.write("\n## Quality Assessment\n\n")
@@ -447,6 +513,7 @@ def generate_report(framework_metrics, evaluation_results):
         
         # Aggregate scores across evaluators
         framework_avg_scores = {}
+        baseball_score_map = {0: 0, 1: 3, 2: 5}
         for result in evaluation_results:
             framework = result["framework"]
             valid_scores = [s for s in result["scores"] if "error" not in s]
@@ -461,9 +528,10 @@ def generate_report(framework_metrics, evaluation_results):
                 claude_score = next((s for s in result["scores"] if s.get("model") == "claude-3-sonnet"), {})
                 baseball = claude_score.get("baseball_coach_handling", "?")
                 baseball_rating = {0: "Not mentioned", 1: "Mentioned", 2: "Properly excluded"}
-                baseball_display = f"{baseball} ({baseball_rating.get(baseball, 'Unknown')})"
+                # Normalize baseball score to 5-point scale
+                baseball_display = f"{baseball_score_map.get(baseball, '?')}/5 ({baseball_rating.get(baseball, 'Unknown')})"
                 
-                f.write(f"| {framework.capitalize()} | {completeness_avg:.2f}/3 | {rationale_avg:.2f}/3 | {structure_avg:.2f}/3 | {baseball_display} |\n")
+                f.write(f"| {framework.capitalize()} | {completeness_avg:.2f}/5 | {rationale_avg:.2f}/5 | {structure_avg:.2f}/5 | {baseball_display} |\n")
                 
                 # Store for ranking
                 framework_avg_scores[framework] = {
@@ -482,7 +550,7 @@ def generate_report(framework_metrics, evaluation_results):
             f.write("| Rank | Framework | Total Score | Completeness | Rationale | Structure |\n")
             f.write("|------|-----------|-------------|--------------|-----------|----------|\n")
             for i, (fw, scores) in enumerate(rankings, 1):
-                f.write(f"| {i} | {fw.capitalize()} | {scores['total']:.2f}/9 | {scores['completeness']:.2f}/3 | {scores['rationale_quality']:.2f}/3 | {scores['structure_quality']:.2f}/3 |\n")
+                f.write(f"| {i} | {fw.capitalize()} | {scores['total']:.2f}/15 | {scores['completeness']:.2f}/5 | {scores['rationale_quality']:.2f}/5 | {scores['structure_quality']:.2f}/5 |\n")
         
         # Testing Methodology
         f.write("\n## Testing Methodology\n\n")
@@ -512,6 +580,7 @@ def generate_report(framework_metrics, evaluation_results):
         
         # Detailed Evaluations
         f.write("\n---\n\n## Detailed Evaluations\n\n")
+        baseball_score_map = {0: 0, 1: 3, 2: 5}
         for result in evaluation_results:
             framework = result["framework"].capitalize()
             f.write(f"### {framework}\n\n")
@@ -525,9 +594,9 @@ def generate_report(framework_metrics, evaluation_results):
                     if 'raw' in score:
                         f.write(f"**Raw Output:**\n```\n{score['raw'][:500]}...\n```\n\n")
                 else:
-                    f.write(f"**Completeness:** {score.get('completeness', '?')}/3\n{score.get('completeness_explanation', 'No explanation provided.')}\n\n")
-                    f.write(f"**Rationale Quality:** {score.get('rationale_quality', '?')}/3\n{score.get('rationale_explanation', 'No explanation provided.')}\n\n")
-                    f.write(f"**Structure Quality:** {score.get('structure_quality', '?')}/3\n{score.get('structure_explanation', 'No explanation provided.')}\n\n")
+                    f.write(f"**Completeness:** {score.get('completeness', '?')}/5\n{score.get('completeness_explanation', 'No explanation provided.')}\n\n")
+                    f.write(f"**Rationale Quality:** {score.get('rationale_quality', '?')}/5\n{score.get('rationale_explanation', 'No explanation provided.')}\n\n")
+                    f.write(f"**Structure Quality:** {score.get('structure_quality', '?')}/5\n{score.get('structure_explanation', 'No explanation provided.')}\n\n")
                     
                     baseball = score.get('baseball_coach_handling', '?')
                     if baseball == 2:
@@ -539,11 +608,11 @@ def generate_report(framework_metrics, evaluation_results):
                     else:
                         baseball_text = "Unknown BaseballCoachAgent handling"
                     
-                    f.write(f"**BaseballCoachAgent Handling:** {baseball_text}\n\n")
+                    f.write(f"**BaseballCoachAgent Handling:** {baseball_text} — Score: {baseball_score_map.get(baseball, '?')}/5\n\n")
                     
                     if all(k in score for k in ['completeness', 'rationale_quality', 'structure_quality']):
                         total = int(score['completeness']) + int(score['rationale_quality']) + int(score['structure_quality'])
-                        f.write(f"**Total Score: {total}/9**\n\n")
+                        f.write(f"**Total Score: {total}/15**\n\n")
             
             # Key output examples
             framework_key = framework.lower()
@@ -552,9 +621,12 @@ def generate_report(framework_metrics, evaluation_results):
                 if framework_key == "autogen":
                     f.write("#### BaseballCoachAgent Handling Examples\n\n")
 
+                    # Extract BaseballCoachAgent messages from framework_metrics
+                    autogen_messages = framework_metrics.get("autogen", {}).get("messages", [])
+                    baseball_messages = [m for m in autogen_messages if m.get("name") == "BaseballCoachAgent"]
                     if baseball_messages:
                         f.write(f"BaseballCoachAgent was used and sent {len(baseball_messages)} messages.\n")
-                        f.write(f"First message: ```\n{baseball_messages[0]['content'][:200]}...\n```\n\n")
+                        f.write(f"First message: ```\n{baseball_messages[0].get('content', '')[:200]}...\n```\n\n")
                     else:
                         f.write("BaseballCoachAgent was not used in the conversation.\n\n")
                 else:
@@ -564,22 +636,67 @@ def generate_report(framework_metrics, evaluation_results):
                     if baseball_context:
                         f.write("#### BaseballCoachAgent Handling Examples\n\n")
                         f.write(f"```\n{baseball_context.group(0)}\n```\n\n")
-    
+        # Append date/time at the end of the report
+        f.write(f"\n---\n\nReport finalized: {datetime.now().isoformat()}\n")
     print(f"\n✅ Benchmark report written to {SUMMARY_REPORT}")
 
 # === MAIN ===
 def main():
+    if args.score_only:
+        # Only run scoring/evaluation on existing outputs
+        if args.output_dir:
+            results_dir = os.path.abspath(args.output_dir)
+        else:
+            # Use latest_run symlink
+            PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
+            RESULTS_PARENT = os.path.join(PROJECT_ROOT, 'results', 'benchmark2')
+            latest_symlink = os.path.join(RESULTS_PARENT, 'latest_run')
+            results_dir = os.path.realpath(latest_symlink) if os.path.exists(latest_symlink) else None
+        if not results_dir or not os.path.exists(results_dir):
+            print(f"❌ Could not find results directory: {results_dir}")
+            sys.exit(1)
+        # Find output markdown files (run folder only)
+        md_paths = sorted(glob(os.path.join(results_dir, 'b2_*_dynamic_orchestration.md')))
+        if not md_paths:
+            print(f"❌ No framework output markdown files found in {results_dir}")
+            sys.exit(1)
+        print(f"🔄 Scoring the following output files:")
+        for p in md_paths:
+            print(f"  - {p}")
+        # Minimal framework_metrics for reporting
+        framework_metrics = {}
+        # Try to reconstruct metrics from output files (basic)
+        for p in md_paths:
+            framework = os.path.basename(p).split('_')[1].lower()
+            with open(p, 'r') as f:
+                content = f.read()
+            duration_match = re.search(r"\*\*Time to complete:\*\* ([\d.]+) seconds", content)
+            turns_match = re.search(r"\*\*Agent turns:\*\* (\d+)", content)
+            duration = float(duration_match.group(1)) if duration_match else "?"
+            turns = int(turns_match.group(1)) if turns_match else "?"
+
+            framework_metrics[framework] = {
+                'output': content,
+                'duration': duration,
+                'agent_turns': turns,
+                'output_length': len(content),
+                'filtered_irrelevant_agents': '?',
+                'agent_filtering_details': '?',
+}
+        # Score outputs
+        evaluation_results = score_outputs(md_paths)
+        generate_report(framework_metrics, evaluation_results)
+        print("\n✅ Re-scoring complete.")
+        return
+
     # Run all framework tests
     framework_metrics = run_all_framework_tests()
-    
     # Normalize output files
     normalize_success = normalize_outputs()
     if not normalize_success:
         print("⚠️ Continuing with evaluation despite normalization issues.")
-    
     # Score outputs
     evaluation_results = evaluate_outputs()
-    
     # Generate comprehensive report
     generate_report(framework_metrics, evaluation_results)
 

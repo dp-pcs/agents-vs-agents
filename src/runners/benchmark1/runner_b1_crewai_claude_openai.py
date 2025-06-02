@@ -32,6 +32,10 @@ openai_response = openai_client.chat.completions.create(
 )
 evaluation_md = openai_response.choices[0].message.content
 
+print("\n--- DEBUG: evaluation_md ---\n")
+print(evaluation_md)
+print("\n--- END DEBUG ---\n")
+
 # Save result
 os.makedirs("results", exist_ok=True)
 end = time.time()

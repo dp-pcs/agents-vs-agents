@@ -249,10 +249,11 @@ def run_crewai_test():
     
     # Create framework behavior analysis
     from datetime import datetime
-    output_dir = "results/benchmark2"
-    os.makedirs(output_dir, exist_ok=True)
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    raw_output_dir = os.path.join("results", "benchmark2", f"raw_outputs_{date_str}")
+    os.makedirs(raw_output_dir, exist_ok=True)
     dt_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_file = os.path.join(output_dir, f"crewai_dynamic_orchestration_{dt_str}.md")
+    output_file = os.path.join(raw_output_dir, f"crewai_dynamic_orchestration_{dt_str}.md")
     
     try:
         print(f"Writing CrewAI output to {output_file}...")
