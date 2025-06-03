@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Jamba-Instruct",
+    "id": "ai21.jamba-instruct-v1:0",
+    "provider": "AI21",
+    "api_type": "completion"
+  },
+  {
+    "name": "Command R",
+    "id": "cohere.command-r-v1:0",
+    "provider": "Cohere",
+    "api_type": "completion"
+  },
+  {
+    "name": "Llama 3 8B Instruct",
+    "id": "meta.llama3-8b-instruct-v1:0",
+    "provider": "Meta",
+    "api_type": "completion"
+  },
+  {
+    "name": "Llama 3 70B Instruct",
+    "id": "meta.llama3-70b-instruct-v1:0",
+    "provider": "Meta",
+    "api_type": "completion"
+  },
+  {
+    "name": "Mistral Small",
+    "id": "mistral.mistral-small-2402-v1:0",
+    "provider": "Mistral",
+    "api_type": "completion"
+  }
+]

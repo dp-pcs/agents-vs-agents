@@ -1,6 +1,6 @@
 # Multi-Agent Orchestration Benchmark Report
 
-Generated: 2025-06-02T20:18:42.235824
+Generated: 2025-06-03T11:52:21.974135
 
 ## Performance Metrics
 
@@ -21,40 +21,33 @@ Generated: 2025-06-02T20:18:42.235824
 
 | Framework | Completeness | Rationale Quality | Structure Quality | BaseballCoach Handling |
 |-----------|--------------|-------------------|-------------------|------------------------|
-| Autogen | 4.67/5 | 5.00/5 | 4.67/5 | 5/5 (Properly excluded) |
-| Crewai | 4.67/5 | 5.00/5 | 4.67/5 | 5/5 (Properly excluded) |
-| Langgraph | 4.75/5 | 5.00/5 | 5.00/5 | 5/5 (Properly excluded) |
+| Autogen | 4.00/5 | 5.00/5 | 4.00/5 | 5/5 (Properly excluded) |
+| Crewai | 4.00/5 | 5.00/5 | 4.00/5 | 5/5 (Properly excluded) |
+| Langgraph | 4.00/5 | 5.00/5 | 4.00/5 | 5/5 (Properly excluded) |
 
 ## Framework Rankings
 
 | Rank | Framework | Total Score | Completeness | Rationale | Structure |
 |------|-----------|-------------|--------------|-----------|----------|
-| 1 | Langgraph | 14.75/15 | 4.75/5 | 5.00/5 | 5.00/5 |
-| 2 | Autogen | 14.33/15 | 4.67/5 | 5.00/5 | 4.67/5 |
-| 3 | Crewai | 14.33/15 | 4.67/5 | 5.00/5 | 4.67/5 |
+| 1 | Autogen | 13.00/15 | 4.00/5 | 5.00/5 | 4.00/5 |
+| 2 | Crewai | 13.00/15 | 4.00/5 | 5.00/5 | 4.00/5 |
+| 3 | Langgraph | 13.00/15 | 4.00/5 | 5.00/5 | 4.00/5 |
 
 ## Model Scores by Framework
 
 | Framework | Model | Completeness | Rationale Quality | Structure Quality | Total |
 |-----------|-------|--------------|-------------------|-------------------|-------|
 | Autogen | claude-3-sonnet | 4/5 | 5/5 | 4/5 | 13/15 |
-| Autogen | Claude 3 Sonnet | 5/5 | 5/5 | 5/5 | 15/15 |
-| Autogen | Claude 3 Haiku | 5/5 | 5/5 | 5/5 | 15/15 |
 | Crewai | claude-3-sonnet | 4/5 | 5/5 | 4/5 | 13/15 |
-| Crewai | Claude 3 Sonnet | 5/5 | 5/5 | 5/5 | 15/15 |
-| Crewai | Claude 3 Haiku | 5/5 | 5/5 | 5/5 | 15/15 |
-| Langgraph | claude-3-sonnet | 4/5 | 5/5 | 5/5 | 14/15 |
-| Langgraph | Claude 3 Sonnet | 5/5 | 5/5 | 5/5 | 15/15 |
-| Langgraph | Claude 3 Haiku | 5/5 | 5/5 | 5/5 | 15/15 |
-| Langgraph | Mistral 7B Instruct | 5/5 | 5/5 | 5/5 | 15/15 |
+| Langgraph | claude-3-sonnet | 4/5 | 5/5 | 4/5 | 13/15 |
 
 ### Final Average Score by Framework (across all models)
 
 | Framework | Average Score (All Models) |
 |-----------|--------------------------|
-| Autogen | 14.33/15 |
-| Crewai | 14.33/15 |
-| Langgraph | 14.75/15 |
+| Autogen | 13.00/15 |
+| Crewai | 13.00/15 |
+| Langgraph | 13.00/15 |
 
 ## Testing Methodology
 
@@ -95,55 +88,24 @@ All frameworks were tested with:
 #### Evaluation by claude-3-sonnet
 
 **Completeness:** 4/5
-Most major sections are present with good depth, including executive summary, market analysis, product strategy, marketing/sales plan, financials, team roles, risks/mitigation, and timeline. The missing conclusion section prevents a perfect 5 score.
+The business plan covers all major sections required, including an executive summary, market analysis, product strategy, go-to-market plan, financial projections, team roles, risks and mitigation strategies, and a rollout timeline. The content provided has good depth and coherence.
 
 **Rationale Quality:** 5/5
-Excellent rationale is provided for the choice of agents and their roles in developing a comprehensive business plan tailored to launching an AI productivity app. The exclusion of irrelevant agents like BaseballCoachAgent is clearly justified.
+The rationale for the choice of agents is clearly and thoroughly explained, highlighting their relevance to the business plan sections. The exclusion of irrelevant agents like BaseballCoachAgent is also justified.
 
 **Structure Quality:** 4/5
-The overall structure and formatting is well-organized, with logical sections and a readable flow. Consistent markdown formatting is used. A hierarchical structure with headings/subheadings enhances readability.
+The structure is well-organized, with sections clearly delineated and content flowing logically. The use of markdown formatting aids readability.
 
 **BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
 
 **Total Score: 13/15**
 
-#### Evaluation by Claude 3 Sonnet
+#### Evaluation by gpt-4o
 
-**Completeness:** 5/5
-The business plan covers all major sections in exceptional detail, including executive summary, market analysis, product strategy, go-to-market plan, financial projections, team and roles, risk mitigation, rollout timeline, and conclusion.
-
-**Rationale Quality:** 5/5
-The rationale for agent choices and their roles is clearly explained, highlighting the need for a comprehensive set of agents to cover all aspects of the business plan. The exclusion of irrelevant agents like BaseballCoachAgent is also justified.
-
-**Structure Quality:** 5/5
-The business plan is impeccably organized with consistent formatting, logical flow between sections, and clear use of markdown hierarchy. The structure enhances readability and professionalism.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
-
-**Total Score: 15/15**
-
-#### Evaluation by Claude 3 Haiku
-
-**Completeness:** 5/5
-The business plan covers all the expected sections in great detail, including the executive summary, market analysis, product strategy, go-to-market plan, financial projections, team and roles, and risks and mitigation strategies. It provides a comprehensive overview of the AI productivity app and its launch.
-
-**Rationale Quality:** 5/5
-The rationale for engaging the various agents is well-explained, and the reasons for excluding the BaseballCoachAgent are clearly justified as it is not relevant to the context of launching an AI productivity app. The decision-making process is transparent and well-reasoned.
-
-**Structure Quality:** 5/5
-The business plan is exceptionally well-structured, with clear section headings, logical flow, and consistent formatting. The use of markdown hierarchy and formatting makes the document easy to read and navigate.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
-
-**Total Score: 15/15**
-
-#### Evaluation by Mistral 7B Instruct
-
-**ERROR:** Could not parse JSON or extract scores via regex from Bedrock response
-
-#### Evaluation by DeepSeek Coder
-
-**ERROR:** Unsupported/misconfigured Bedrock model: us.deepseek.r1-v1:0
+**ERROR:** OpenAI returned non-JSON: ```json
+{
+  "completeness": 5,
+  "completeness_explanation": "The business plan is fully complete, covering all expected sections with exceptional detail and thoughtfulness. It includes an executive s...
 
 #### BaseballCoachAgent Handling Examples
 
@@ -154,55 +116,24 @@ BaseballCoachAgent was not used in the conversation.
 #### Evaluation by claude-3-sonnet
 
 **Completeness:** 4/5
-The business plan covers most of the essential sections, including market analysis, product overview, target market, competitive advantage, financial projections, and a conclusion. It provides good depth and coherence across these sections.
+The business plan covers all major sections with good depth, including market analysis, product overview, target market, competitive advantage, financial projections, and conclusion. It provides a comprehensive view of the proposed AI productivity app business.
 
 **Rationale Quality:** 5/5
-The rationale for agent selection and their roles is clearly explained. The reasoning for including or excluding agents is well-justified, and the overall structure of how the different components fit together is logical and well-reasoned.
+The rationale section clearly explains the choice of expert agents involved and their respective roles in developing the different components of the business plan. It provides excellent reasoning for including each agent and excluding irrelevant ones like the BaseballCoachAgent.
 
 **Structure Quality:** 4/5
-The business plan is well-structured, with clear sections and a logical flow. The formatting is consistent and readable, following a professional style. While not impeccable, the structure and formatting are of good quality.
+The plan is well-structured with clear sections and formatting. It follows a logical flow starting with the rationale, executive summary, market analysis, and other key components. The markdown formatting is clean and readable.
 
 **BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
 
 **Total Score: 13/15**
 
-#### Evaluation by Claude 3 Sonnet
+#### Evaluation by gpt-4o
 
-**Completeness:** 5/5
-The business plan covers all major sections in exceptional detail, including market analysis, product strategy, go-to-market plan, financial projections, team and roles, risk mitigation, rollout timeline, and conclusion. It provides a comprehensive and well-rounded overview of the EffiPro AI productivity app.
-
-**Rationale Quality:** 5/5
-The rationale for agent choices and exclusions is clearly explained, highlighting the relevance of each agent's expertise to the business objectives. The reasoning for excluding irrelevant agents like the BaseballCoachAgent is also provided.
-
-**Structure Quality:** 5/5
-The business plan is impeccably organized with consistent formatting, logical section flow, and clear markdown hierarchy. The structure facilitates easy readability and navigation.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
-
-**Total Score: 15/15**
-
-#### Evaluation by Claude 3 Haiku
-
-**Completeness:** 5/5
-The business plan covers all the expected sections in great detail, including market analysis, product strategy, go-to-market plan, financial projections, team and roles, risk management, and a rollout timeline. The plan is comprehensive and thoughtful.
-
-**Rationale Quality:** 5/5
-The rationale for engaging various expert agents to cover the essential components of the business strategy is well-explained. The plan clearly outlines how the different agent contributions fit together to form a cohesive strategy. The reasoning behind excluding irrelevant agents, such as the BaseballCoachAgent, is also clearly articulated.
-
-**Structure Quality:** 5/5
-The business plan is exceptionally well-structured, with clear section headings, logical flow, and consistent formatting. The use of markdown formatting makes the document easy to read and navigate.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
-
-**Total Score: 15/15**
-
-#### Evaluation by Mistral 7B Instruct
-
-**ERROR:** Could not parse JSON or extract scores via regex from Bedrock response
-
-#### Evaluation by DeepSeek Coder
-
-**ERROR:** Unsupported/misconfigured Bedrock model: us.deepseek.r1-v1:0
+**ERROR:** OpenAI returned non-JSON: ```json
+{
+  "completeness": 5,
+  "completeness_explanation": "The business plan for EffiPro is fully complete, including all expected sections such as Executive Summary, Market Analysis, Product Strat...
 
 #### BaseballCoachAgent Handling Examples
 
@@ -217,66 +148,24 @@ Agents not used include any irrelevant ones, such as a BaseballCoachAgent, as th
 #### Evaluation by claude-3-sonnet
 
 **Completeness:** 4/5
-The business plan covers all the major sections like executive summary, market analysis, product strategy, go-to-market plan, financials, team, risks, timeline, and conclusion. It provides good depth and detail in each section.
+The business plan covers most of the essential sections, including an executive summary, market analysis, product strategy, go-to-market strategy, financial projections, team structure, risk assessment, and timeline. It provides good depth and coherence across these sections.
 
 **Rationale Quality:** 5/5
-The rationale section clearly explains the roles and purposes of each agent included in developing the comprehensive business plan. It provides excellent justification for including or excluding agents based on relevance to the AI productivity app.
+The rationale for selecting and excluding agents is clearly explained, providing well-reasoned justifications for the choices made. The role and relevance of each agent in contributing to the overall business plan objectives are articulated convincingly.
 
-**Structure Quality:** 5/5
-The plan is very well-structured with clear sections, consistent formatting using markdown, and a logical hierarchical flow from high-level overviews to more detailed components.
+**Structure Quality:** 4/5
+The business plan is well-structured, readable, and professionally formatted. It follows a logical flow, with clear section divisions and hierarchy. The use of markdown formatting enhances readability.
 
 **BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
 
-**Total Score: 14/15**
+**Total Score: 13/15**
 
-#### Evaluation by Claude 3 Sonnet
+#### Evaluation by gpt-4o
 
-**Completeness:** 5/5
-The business plan covers all major sections in great detail, including executive summary, market analysis, product strategy, go-to-market plan, financial projections, team roles, risk assessment, timeline, and conclusion. It provides a comprehensive overview of the AI productivity app launch.
-
-**Rationale Quality:** 5/5
-The rationale for agent choices and exclusions is clearly explained, highlighting how each agent contributes to a specific aspect of the business plan. The reasoning behind excluding the BaseballCoachAgent is also provided.
-
-**Structure Quality:** 5/5
-The business plan is impeccably structured, with clear sections, consistent formatting, and logical flow. The use of markdown hierarchy and formatting enhances readability and professionalism.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
-
-**Total Score: 15/15**
-
-#### Evaluation by Claude 3 Haiku
-
-**Completeness:** 5/5
-The business plan covers all the expected sections in great detail, including the executive summary, market analysis, product strategy, go-to-market plan, financial projections, team and roles, risk mitigation, and a comprehensive 12-week rollout timeline. The plan is complete and thorough.
-
-**Rationale Quality:** 5/5
-The rationale provided for engaging the various agents is clear and well-reasoned. The explanations for the agent choices and their roles in the business plan development process are excellent, demonstrating a strong understanding of how to leverage different expertise to create a cohesive and comprehensive plan.
-
-**Structure Quality:** 5/5
-The business plan is exceptionally well-structured, with a clear and logical flow between sections. The formatting is professional and consistent, and the use of headings and subheadings makes the content easy to navigate. The overall organization and presentation of the plan are outstanding.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was properly excluded with explanation — Score: 5/5
-
-**Total Score: 15/15**
-
-#### Evaluation by Mistral 7B Instruct
-
-**Completeness:** 5/5
-The business plan covers all major sections with exceptional detail and thoughtfulness, including market analysis, product strategy, go-to-market plan, financial projections, team organization, risk mitigation, and a 12-week rollout timeline.
-
-**Rationale Quality:** 5/5
-The business plan provides an excellent, well-reasoned rationale for all major decisions and exclusions, including agent choices and role justifications.
-
-**Structure Quality:** 5/5
-The business plan is impeccably organized with consistent formatting, logical section flow, and clear markdown hierarchy.
-
-**BaseballCoachAgent Handling:** BaseballCoachAgent was not mentioned at all — Score: 0/5
-
-**Total Score: 15/15**
-
-#### Evaluation by DeepSeek Coder
-
-**ERROR:** Unsupported/misconfigured Bedrock model: us.deepseek.r1-v1:0
+**ERROR:** OpenAI returned non-JSON: ```json
+{
+  "completeness": 5,
+  "completeness_explanation": "The business plan is fully complete, covering all expected sections such as Executive Summary, Market Analysis, Product Strategy, Go-to-Ma...
 
 #### BaseballCoachAgent Handling Examples
 
@@ -289,4 +178,4 @@ I chose not to involve the **BaseballCoachAgent** as it is irrelevant to the bus
 
 ---
 
-Report finalized: 2025-06-02T20:18:42.236996
+Report finalized: 2025-06-03T11:52:21.978572

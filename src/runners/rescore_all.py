@@ -21,7 +21,8 @@ def rescore_all():
         try:
             subprocess.run([
                 sys.executable,
-                "src/runners/benchmark2/b2_full_pipeline_run.py",
+                "-m",
+                "src.runners.benchmark2.b2_full_pipeline_run",
                 dir_path,
                 "--score-only"
             ], check=True)
