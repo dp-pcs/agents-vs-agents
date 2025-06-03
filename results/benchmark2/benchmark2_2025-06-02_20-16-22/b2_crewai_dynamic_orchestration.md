@@ -1,4 +1,4 @@
-Generated: 2025-06-02T21:39:47
+Generated: 2025-06-02T21:43:09.179866
 # Crewai Dynamic Orchestration Output
 
 ```markdown
@@ -428,7 +428,3 @@ Here is the final business plan and rationale.
 **Time to complete:** 197.66 seconds
 
 **Agent turns:** 4
-
-**Bedrock LLM Scores:**
-| Model | Completeness | Rationale Quality | Structure Quality |
-| --- | --- | --- | --- |

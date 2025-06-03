@@ -1,4 +1,4 @@
-Generated: 2025-06-02T21:43:09
+Generated: 2025-06-02T21:43:09.179975
 # Langgraph Dynamic Orchestration Output
 
 **Rationale**
@@ -474,7 +474,3 @@ In summary, the launch of our AI productivity app is a strategic initiative that
 **Time to complete:** 202.17 seconds
 
 **Agent turns:** 10
-
-**Bedrock LLM Scores:**
-| Model | Completeness | Rationale Quality | Structure Quality |
-| --- | --- | --- | --- |

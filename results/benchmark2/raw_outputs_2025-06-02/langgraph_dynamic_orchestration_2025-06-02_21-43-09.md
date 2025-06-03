@@ -1,5 +1,14 @@
-Generated: 2025-06-02T21:43:09
-# Langgraph Dynamic Orchestration Output
+Generated: 2025-06-02T21:43:09.177786
+# LangGraph Dynamic Orchestration Output
+
+## Framework Behavior Analysis
+
+### Agent Selection:
+- **BaseballCoachAgent**: Incorrectly used
+
+**FINDING**: BaseballCoachAgent may have been incorrectly used despite being irrelevant to the business task.
+
+## Business Plan Content
 
 **Rationale**
 
@@ -474,7 +483,3 @@ In summary, the launch of our AI productivity app is a strategic initiative that
 **Time to complete:** 202.17 seconds
 
 **Agent turns:** 10
-
-**Bedrock LLM Scores:**
-| Model | Completeness | Rationale Quality | Structure Quality |
-| --- | --- | --- | --- |

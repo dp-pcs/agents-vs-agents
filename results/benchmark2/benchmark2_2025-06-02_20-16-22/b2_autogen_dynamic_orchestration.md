@@ -1,4 +1,4 @@
-Generated: 2025-06-02T21:36:29
+Generated: 2025-06-02T21:43:09.179703
 # Autogen Dynamic Orchestration Output
 
 **Rationale**
@@ -327,7 +327,3 @@ In conclusion, this business plan outlines a clear pathway to launching a succes
 **Time to complete:** 4806.78 seconds
 
 **Agent turns:** 11
-
-**Bedrock LLM Scores:**
-| Model | Completeness | Rationale Quality | Structure Quality |
-| --- | --- | --- | --- |

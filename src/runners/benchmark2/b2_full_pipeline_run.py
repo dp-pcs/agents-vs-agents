@@ -50,13 +50,10 @@ ANTHROPIC_MODEL = 'claude-3-sonnet-20240229'
 
 BEDROCK_ENABLED = os.getenv('AWS_ACCESS_KEY_ID') is not None
 BEDROCK_MODEL_REGISTRY = {
-    "claude_opus": ("anthropic.claude-3-opus-20240229-v1:0", "Claude 3 Opus"),
     "claude_sonnet": ("anthropic.claude-3-sonnet-20240229-v1:0", "Claude 3 Sonnet"),
     "claude_haiku": ("anthropic.claude-3-haiku-20240307-v1:0", "Claude 3 Haiku"),
-    "titan_express": ("amazon.titan-text-express-v1", "Titan Text Express"),
-    "titan_lite": ("amazon.titan-text-lite-v1", "Titan Text Lite"),
-    "mistral_7b": ("mistral.mistral-7b-instruct-v0:0", "Mistral 7B Instruct"),
-    "deepseek_coder": ("deepseek.deepseek-coder-v1:0", "DeepSeek Coder"),
+    "mistral_7b": ("mistral.mistral-7b-instruct-v0:2", "Mistral 7B Instruct"),
+    "deepseek_coder": ("us.deepseek.r1-v1:0", "DeepSeek Coder"),
 }
 
 BEDROCK_MODELS = list(BEDROCK_MODEL_REGISTRY.values())
@@ -354,117 +351,208 @@ def score_with_anthropic(plan_md, max_retries=3):
 
 # === NORMALIZATION AND EVALUATION ===
 
-def score_with_bedrock(plan_md, model_id):
-    """Score plan using AWS Bedrock models"""
+def score_with_bedrock(plan_md, model_id_tuple): # model_id_tuple is (model_id, display_name)
+    """Score plan using AWS Bedrock models with enhanced debugging and model handling."""
+    model_id, model_display_name = model_id_tuple # Unpack the tuple
+
+    print(f"\n[BEDROCK SCORING DEBUG] Attempting to score with Bedrock model: {model_display_name} ({model_id})")
+
     if not BEDROCK_ENABLED:
-        return {"error": "AWS credentials not configured"}
-    
+        print("[BEDROCK SCORING DEBUG] Bedrock is NOT enabled (AWS_ACCESS_KEY_ID not found in env).")
+        return {"error": "AWS credentials not configured", "model_id": model_id, "model_name": model_display_name}
+
     try:
         import boto3
+        aws_region = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+        print(f"[BEDROCK SCORING DEBUG] Using AWS Region: {aws_region}")
+        bedrock_runtime = boto3.client(service_name="bedrock-runtime", region_name=aws_region)
         
-        # Truncate content to fit model limits
-        truncated_plan = plan_md[:10000]  # Adjust depending on model token limits
-        
-        # Prepare prompt
-        prompt = SCORING_PROMPT + "\n\nBusiness Plan:\n" + truncated_plan
-        
-        # Route Anthropic models to Anthropic API, not Bedrock
-        if "anthropic" in model_id:
-            return score_with_anthropic(plan_md)
+        max_input_tokens = 18000 
+        max_output_tokens = 2048  
+        truncated_plan = plan_md # Default to full plan
+
+        if "claude-3-sonnet" in model_id or "claude-3-haiku" in model_id or "claude-3-opus" in model_id:
+            max_input_tokens = 18000 
+            max_output_tokens = 2048 
+            truncated_plan = plan_md[:70000] if len(plan_md) > 70000 else plan_md
+            
+            system_prompt_claude = SCORING_PROMPT
+            user_message_claude = "Business Plan:\n" + truncated_plan
+
+            body = {
+                "anthropic_version": "bedrock-2023-05-31", 
+                "max_tokens": max_output_tokens,
+                "system": system_prompt_claude,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": user_message_claude}]
+                    }
+                ],
+                "temperature": 0.2,
+            }
+            prompt_for_logging = f"System: {system_prompt_claude[:200]}... User: {user_message_claude[:200]}..."
+
         elif "amazon.titan" in model_id:
+            max_input_tokens = 3500 
+            max_output_tokens = 1000 
+            truncated_plan = plan_md[:12000] if len(plan_md) > 12000 else plan_md
+            prompt = SCORING_PROMPT + "\n\nBusiness Plan:\n" + truncated_plan
             body = {
                 "inputText": prompt,
                 "textGenerationConfig": {
-                    "maxTokenCount": 1000,
-                    "temperature": 0.2
+                    "maxTokenCount": max_output_tokens,
+                    "temperature": 0.2,
+                    "stopSequences": [],
                 }
             }
+            prompt_for_logging = prompt[:400] + "..."
+
         elif "mistral.mistral-7b-instruct" in model_id:
+            max_input_tokens = 7500 
+            max_output_tokens = 1000
+            truncated_plan = plan_md[:30000] if len(plan_md) > 30000 else plan_md
+            prompt = f"<s>[INST] {SCORING_PROMPT} [/INST] Business Plan:\n{truncated_plan}"
             body = {
                 "prompt": prompt,
-                "max_tokens": 1000,
+                "max_tokens": max_output_tokens,
                 "temperature": 0.2
             }
-        elif "deepseek.deepseek-coder" in model_id:
+            prompt_for_logging = prompt[:400] + "..."
+            
+        elif "deepseek.deepseek-coder" in model_id: 
+            max_input_tokens = 3500
+            max_output_tokens = 1000
+            truncated_plan = plan_md[:12000] if len(plan_md) > 12000 else plan_md
+            prompt = SCORING_PROMPT + "\n\nBusiness Plan:\n" + truncated_plan 
             body = {
-                "prompt": prompt,
-                "max_tokens": 1000,
+                "prompt": prompt, 
+                "max_tokens": max_output_tokens,
                 "temperature": 0.2
             }
+            prompt_for_logging = prompt[:400] + "..."
         else:
-            return {"error": f"Unsupported or misconfigured model: {model_id}. Please check BEDROCK_MODEL_REGISTRY or token limits."}
-        
-        # Get inference profile ARN from environment variable (robust lookup)
-        def model_id_to_env_var(model_id):
-            return "BEDROCK_INFERENCE_PROFILE_ARN_" + re.sub(r'[^A-Za-z0-9]', '_', model_id).upper()
-        env_var_name = model_id_to_env_var(model_id)
-        inference_profile_arn = os.environ.get(env_var_name)
+            print(f"[BEDROCK SCORING DEBUG] Unsupported or misconfigured model ID: {model_id}")
+            return {"error": f"Unsupported/misconfigured Bedrock model: {model_id}", "model_id": model_id, "model_name": model_display_name}
 
-        # Only require and inject inferenceProfileArn for models that need it
-        needs_inference_profile = ("meta" in model_id)
+        print(f"[BEDROCK SCORING DEBUG] Using model: {model_display_name} ({model_id})")
+        print(f"[BEDROCK SCORING DEBUG] Max input tokens (plan): ~{max_input_tokens}, Max output tokens: {max_output_tokens}")
+        print(f"[BEDROCK SCORING DEBUG] Length of original plan_md: {len(plan_md)} chars")
+        print(f"[BEDROCK SCORING DEBUG] Length of truncated_plan: {len(truncated_plan)} chars for model input")
+        print(f"[BEDROCK SCORING DEBUG] Prompt (first 400 chars for logging): {prompt_for_logging}")
+        print(f"[BEDROCK SCORING DEBUG] Request body (structure): { {k: (type(v) if k != 'messages' and k != 'system' else '...') for k,v in body.items()} }")
 
-        if needs_inference_profile:
-            if inference_profile_arn:
-                body["inferenceProfileArn"] = inference_profile_arn
-            else:
-                print(f"⚠️ No inference profile ARN found for {model_id}, skipping injection.")
-        
-        # Make Bedrock request
-        bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
-        response = bedrock.invoke_model(
+        print(f"[BEDROCK SCORING DEBUG] Invoking Bedrock model {model_id}...")
+        response = bedrock_runtime.invoke_model(
             modelId=model_id,
             body=json.dumps(body),
             accept="application/json",
             contentType="application/json"
         )
         
-        # Extract result
-        response_body = json.loads(response["body"].read())
+        response_body_raw = response["body"].read()
+        print(f"[BEDROCK SCORING DEBUG] Raw response body (first 300 chars): {response_body_raw[:300]}")
+        response_body = json.loads(response_body_raw)
+        print(f"[BEDROCK SCORING DEBUG] Parsed response body (structure): { {k: type(v) for k,v in response_body.items()} }")
 
-        if "amazon.titan" in model_id:
-            # Titan returns: { 'results': [ { 'outputText': ... } ] }
-            try:
-                content = response_body.get("results", [{}])[0].get("outputText", "")
-            except Exception:
-                content = str(response_body)
-        elif "mistral.mistral-7b-instruct" in model_id or "deepseek.deepseek-coder" in model_id:
-            # Mistral/DeepSeek: { 'outputs': [ { 'text': ... } ] }
-            try:
-                outputs = response_body.get("outputs", [{}])
-                content = outputs[0].get("text", "") if outputs and isinstance(outputs[0], dict) else str(response_body)
-            except Exception:
-                content = str(response_body)
-        else:
+        content = ""
+        if "anthropic" in model_id: 
+            if response_body.get("type") == "message" and response_body.get("role") == "assistant":
+                if response_body.get("content") and isinstance(response_body["content"], list):
+                    text_parts = [item.get("text", "") for item in response_body["content"] if item.get("type") == "text"]
+                    content = "".join(text_parts)
+                else:
+                    print(f"[BEDROCK SCORING DEBUG] Unexpected content structure for Anthropic model: {response_body.get('content')}")
+            else: 
+                 if response_body.get("type") == "error" and response_body.get("error"):
+                    error_details = response_body["error"]
+                    print(f"[BEDROCK SCORING DEBUG] Error from Anthropic model: Type: {error_details.get('type')}, Message: {error_details.get('message')}")
+                    return {"error": f"Anthropic model error on Bedrock: {error_details.get('message', 'Unknown error')}", "raw_error_response": response_body, "model_id": model_id, "model_name": model_display_name}
+
+        elif "amazon.titan" in model_id:
+            if "results" in response_body and response_body["results"]:
+                content = response_body["results"][0].get("outputText", "")
+            elif "outputText" in response_body: 
+                 content = response_body.get("outputText", "")
+            else: 
+                if "message" in response_body: 
+                    print(f"[BEDROCK SCORING DEBUG] Error from Titan model: {response_body['message']}")
+                    return {"error": f"Titan model error on Bedrock: {response_body['message']}", "raw_error_response": response_body, "model_id": model_id, "model_name": model_display_name}
+
+        elif "mistral.mistral-7b-instruct" in model_id:
+            if "outputs" in response_body and response_body["outputs"]:
+                content = response_body["outputs"][0].get("text", "")
+        
+        elif "deepseek.deepseek-coder" in model_id:
+            if "outputs" in response_body and response_body["outputs"]:
+                content = response_body["outputs"][0].get("text", "")
+            elif "text" in response_body:
+                content = response_body.get("text", "")
+            elif "completion" in response_body:
+                content = response_body.get("completion", "")
+        else: 
             content = str(response_body)
 
-        # Try to extract JSON
+        print(f"[BEDROCK SCORING DEBUG] Extracted content (first 300 chars): {content[:300]}")
+        if not content:
+            print("[BEDROCK SCORING DEBUG] No content extracted from model response.")
+            return {"error": "No content extracted from Bedrock model response", "raw_response": response_body, "model_id": model_id, "model_name": model_display_name}
+
         try:
             start_idx = content.find('{')
-            end_idx = content.rfind('}') + 1
-            if start_idx >= 0 and end_idx > start_idx:
-                json_str = content[start_idx:end_idx]
-                return json.loads(json_str)
+            end_idx = content.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                json_str = content[start_idx : end_idx+1]
+                print(f"[BEDROCK SCORING DEBUG] Attempting to parse JSON: {json_str[:200]}...")
+                parsed_json = json.loads(json_str)
+                print("[BEDROCK SCORING DEBUG] Successfully parsed JSON from content.")
+                parsed_json["model_id"] = model_id
+                parsed_json["model_name"] = model_display_name
+                return parsed_json
             else:
-                # Fall back to manual extraction
-                scores = {}
+                print("[BEDROCK SCORING DEBUG] Could not find valid JSON structure (curly braces) in content. Attempting regex fallback.")
+                scores = {"model_id": model_id, "model_name": model_display_name}
                 for category in ["completeness", "rationale_quality", "structure_quality"]:
-                    match = re.search(rf"{category}.*?(\d+)", content, re.IGNORECASE)
+                    match = re.search(rf'""{category}""\s*:\s*(\d+)', content, re.IGNORECASE)
                     if match:
                         scores[category] = int(match.group(1))
-                
-                # Extract explanations if possible
-                for category in ["completeness", "rationale_quality", "structure_quality"]:
-                    explanation_match = re.search(rf"{category}[^\n]*\n+([^\n#].*?)(?=\n\n|\n#|\Z)", content, re.DOTALL | re.IGNORECASE)
+                    explanation_match = re.search(rf'""{category}_explanation""\s*:\s*""([^""]*)""', content, re.IGNORECASE)
                     if explanation_match:
-                        scores[f"{category}_explanation"] = explanation_match.group(1).strip()
+                         scores[f"{category}_explanation"] = explanation_match.group(1).strip()
                 
-                return scores
-                
-        except Exception as e:
-            return {"error": f"Could not parse Bedrock response: {str(e)}", "raw": content}
-    
+                bc_match = re.search(r'""baseball_coach_handling""\s*:\s*(\d+)', content, re.IGNORECASE)
+                if bc_match:
+                    scores["baseball_coach_handling"] = int(bc_match.group(1))
+
+                if len(scores) > 2 :
+                    print(f"[BEDROCK SCORING DEBUG] Regex fallback extracted scores: {scores}")
+                    return scores
+                else:
+                    print("[BEDROCK SCORING DEBUG] Regex fallback failed to extract significant scores.")
+                    return {"error": "Could not parse JSON or extract scores via regex from Bedrock response", "raw_content": content, "model_id": model_id, "model_name": model_display_name}
+
+        except json.JSONDecodeError as je:
+            print(f"[BEDROCK SCORING DEBUG] JSONDecodeError: {je}. Raw content was: {content[:500]}...")
+            return {"error": f"Could not parse JSON from Bedrock response: {je}", "raw_content": content, "model_id": model_id, "model_name": model_display_name}
+        except Exception as e_parse:
+            print(f"[BEDROCK SCORING DEBUG] Error during final parsing: {str(e_parse)}")
+            return {"error": f"Bedrock final parsing error: {str(e_parse)}", "raw_content": content, "model_id": model_id, "model_name": model_display_name}
+
+    except boto3.exceptions.Boto3Error as be: 
+        error_message = str(be)
+        print(f"[BEDROCK SCORING DEBUG] Boto3 Error: {error_message}")
+        if "AccessDeniedException" in error_message:
+             error_message = "AWS Bedrock Access Denied. Check IAM permissions for bedrock:InvokeModel on the specified model ARN."
+        elif "ResourceNotFoundException" in error_message:
+            error_message = "AWS Bedrock Model ID not found or not accessible in the current region."
+        return {"error": f"AWS Bedrock API error: {error_message}", "model_id": model_id, "model_name": model_display_name}
     except Exception as e:
-        return {"error": f"Bedrock error: {str(e)}"}
+        print(f"[BEDROCK SCORING DEBUG] General Exception in score_with_bedrock: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return {"error": f"General Bedrock scoring error: {str(e)}", "model_id": model_id, "model_name": model_display_name}
+
 
 def score_outputs(md_paths):
     """
@@ -495,13 +583,30 @@ def score_outputs(md_paths):
         if BEDROCK_ENABLED:
             for model_id, model_name in BEDROCK_MODELS:
                 try:
-                    print(f"  Scoring with Bedrock: {model_name}")
-                    bedrock_score = score_with_bedrock(content, model_id)
-                    bedrock_score["model"] = model_name
-                    scores.append(bedrock_score)
-                    print(f"  ✅ {model_name} scoring complete")
-                except Exception as e:
-                    print(f"  ❌ {model_name} scoring failed: {e}")
+                    print(f"  Scoring with Bedrock: {model_name} (ID: {model_id})") # Added ID for clarity
+                    # Corrected call to score_with_bedrock, passing the tuple
+                    bedrock_score_result = score_with_bedrock(content, (model_id, model_name))
+                    
+                    # Ensure the result is a dictionary and add model name
+                    if isinstance(bedrock_score_result, dict):
+                        bedrock_score_result["model"] = model_name
+                    else: # Handle unexpected return type
+                        print(f"[BEDROCK SCORING WARNING] Unexpected return type from score_with_bedrock for {model_name}. Got: {type(bedrock_score_result)}")
+                        bedrock_score_result = {"error": "Unexpected data from score_with_bedrock", "model": model_name, "raw_output": str(bedrock_score_result)}
+                    
+                    scores.append(bedrock_score_result)
+
+                    if "error" not in bedrock_score_result or not bedrock_score_result.get("error"): # Check if error key exists and has a value
+                        print(f"  ✅ {model_name} scoring complete.")
+                    else:
+                        print(f"  ⚠️ {model_name} scoring completed with error: {bedrock_score_result.get('error', 'Unknown error')}")
+                        
+                except Exception as e_loop: # Catch exceptions within the loop for one model
+                    print(f"  ❌ Critical error during {model_name} scoring loop: {str(e_loop)}")
+                    import traceback
+                    print(traceback.format_exc()) # Print full traceback for loop errors
+                    # Append an error dict so the report can show this model failed
+                    scores.append({"error": f"Loop exception for {model_name}: {str(e_loop)}", "model": model_name})
         results.append({
             "file": os.path.basename(md_path),
             "framework": framework,
@@ -552,17 +657,36 @@ def evaluate_outputs():
             claude_score = {"error": str(e), "model": "claude-3-sonnet"}
             print(f"  ❌ Claude scoring failed: {e}")
         scores = [claude_score]
-        # Score with Bedrock models if enabled
+        
+        # === MODIFIED BEDROCK SCORING LOOP ===
         if BEDROCK_ENABLED:
             for model_id, model_name in BEDROCK_MODELS:
                 try:
-                    print(f"  Scoring with Bedrock: {model_name}")
-                    bedrock_score = score_with_bedrock(content, model_id)
-                    bedrock_score["model"] = model_name
-                    scores.append(bedrock_score)
-                    print(f"  ✅ {model_name} scoring complete")
-                except Exception as e:
-                    print(f"  ❌ {model_name} scoring failed: {e}")
+                    print(f"  Scoring with Bedrock: {model_name} (ID: {model_id})") # Added ID for clarity
+                    # Corrected call to score_with_bedrock, passing the tuple
+                    bedrock_score_result = score_with_bedrock(content, (model_id, model_name))
+                    
+                    # Ensure the result is a dictionary and add model name
+                    if isinstance(bedrock_score_result, dict):
+                        bedrock_score_result["model"] = model_name
+                    else: # Handle unexpected return type
+                        print(f"[BEDROCK SCORING WARNING] Unexpected return type from score_with_bedrock for {model_name}. Got: {type(bedrock_score_result)}")
+                        bedrock_score_result = {"error": "Unexpected data from score_with_bedrock", "model": model_name, "raw_output": str(bedrock_score_result)}
+                    
+                    scores.append(bedrock_score_result)
+
+                    if "error" not in bedrock_score_result or not bedrock_score_result.get("error"): # Check if error key exists and has a value
+                        print(f"  ✅ {model_name} scoring complete.")
+                    else:
+                        print(f"  ⚠️ {model_name} scoring completed with error: {bedrock_score_result.get('error', 'Unknown error')}")
+                        
+                except Exception as e_loop: # Catch exceptions within the loop for one model
+                    print(f"  ❌ Critical error during {model_name} scoring loop: {str(e_loop)}")
+                    import traceback
+                    print(traceback.format_exc()) # Print full traceback for loop errors
+                    # Append an error dict so the report can show this model failed
+                    scores.append({"error": f"Loop exception for {model_name}: {str(e_loop)}", "model": model_name})
+        # === END NEW BEDROCK SCORING LOOP ===
         results.append({
             "file": os.path.basename(md_path),
             "framework": framework,
